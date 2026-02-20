@@ -1,0 +1,19 @@
+# --- Backend / Python ---
+backend/447app/             # Your specific venv folder, everyones could be different
+backend/.env                # Secret keys, DB passwords (DO NOT COMMIT)
+backend/__pycache__/        # Compiled Python files
+backend/*.py[cod]           # Python bytecode
+backend/.pytest_cache/      # If you run tests later
+
+# --- Frontend / Node ---
+frontend/node_modules/      # Large library folder
+frontend/.next/             # Next.js build output
+frontend/.env.local         # Frontend secrets
+
+# --- OS Specific ---
+.DS_Store                   # macOS clutter
+Thumbs.db                   # Windows clutter
+*.Zone.Identifier      # Windows download metadata
+
+# --- IDE Specific ---
+.vscode/                    # Local VS Code settings (optional)
