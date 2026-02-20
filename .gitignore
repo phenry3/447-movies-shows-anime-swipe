@@ -17,3 +17,9 @@ Thumbs.db                   # Windows clutter
 
 # --- IDE Specific ---
 .vscode/                    # Local VS Code settings (optional)
+
+# --- Generated Data Files ---
+*.db
+*.sqlite
+*.sqlite3
+backend/exported_movies.csv
