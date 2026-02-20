@@ -1,7 +1,7 @@
 # --- Backend / Python ---
-backend/447app/             # Your specific venv folder, everyones could be different
+backend/447app/            # Your specific venv folder, everyones could be different
 backend/.env                # Secret keys, DB passwords (DO NOT COMMIT)
-backend/__pycache__/        # Compiled Python files
+**/__pycache__/       # Compiled Python files
 backend/*.py[cod]           # Python bytecode
 backend/.pytest_cache/      # If you run tests later
 

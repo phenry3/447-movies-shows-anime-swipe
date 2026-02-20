@@ -10,4 +10,5 @@ castr@char:~/repos/447-movies-shows-anime-swipe/backend$ source 447app/bin/activ
 (447app) castr@char:~/repos/447-movies-shows-anime-swipe/backend$ 
 
 # Dependincies to install (run this once)
-pip install "fastapi[standard]"
+pip install "fastapi[standard]" 
+pip install pandas #used for csv and db creation
