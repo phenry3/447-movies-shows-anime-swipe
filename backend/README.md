@@ -12,3 +12,8 @@ castr@char:~/repos/447-movies-shows-anime-swipe/backend$ source 447app/bin/activ
 # Dependincies to install (run this once)
 pip install "fastapi[standard]" 
 pip install pandas #used for csv and db creation
+
+# DB stuff
+you must have final_recommender_dataset.csv in your local backend folder
+run the final_csv_to_db.py to turn it into a db if you have not build the db yet
+run final_db_to_csv.py if you want to turn the db into a csv for using for the algo
