@@ -42,7 +42,7 @@ class MovieRecommender:
 
         return recommended_titles[::-1]
     
-    def get_recommendations_from_name(self, title):
+    def get_recommendations_from_title(self, title):
         if title not in self.movies['title'].values:
             return f"Error: '{title}' not found in the database."
         
@@ -70,4 +70,4 @@ print("---------------------------------------------------\n")
 # DEMO: gets recommendation based on title
 title = "Toy Story"
 print(f"Recommendation for movie: {title}:")
-print(f"{movie_rec.get_recommendations_from_name(title)}\n")
+print(f"{movie_rec.get_recommendations_from_title(title)}\n")
