@@ -55,13 +55,14 @@ class MovieRecommender:
 
         return recommended_titles[::-1]
 
+
+# NOTE: Remove this demo later, this class will be created and called from backend of site 
 movie_rec = MovieRecommender()
 
 # DEMO: gets a few recommendations from index
 for i in range(5):
     print(f"Recommendation for movie: {movie_rec.movies['title'].iloc[i]}:")
     print(f"{movie_rec.get_recommendations_from_idx(i)}\n")
-
 
 # demo seperator
 print("---------------------------------------------------\n")
