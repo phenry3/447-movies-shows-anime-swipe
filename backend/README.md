@@ -17,3 +17,13 @@ pip install pandas #used for csv and db creation
 you must have final_recommender_dataset.csv in your local backend folder
 run the final_csv_to_db.py to turn it into a db if you have not build the db yet
 run final_db_to_csv.py if you want to turn the db into a csv for using for the algo
+
+# Main Backend Logic (main.py)
+This is the controller for the whole backend. It handles the 'matches' and 'dislikes' tables which have the same schema as the main movies table. 
+
+Functions in MovieBackend class:
+* **run_import()**: triggers the final_csv_to_db script
+* **run_export()**: triggers the final_db_to_csv script
+* **add_match(title) / add_dislike(title)**: pulls the movie from the main table and tosses it into the liked or disliked list
+* **remove_match(title) / remove_dislike(title)**: deletes a movie from those lists if you change your mind
+* **get_matches() / get_dislikes()**: returns everything in those tables as a list of dicts for the frontend to use
