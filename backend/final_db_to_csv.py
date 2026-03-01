@@ -2,7 +2,7 @@ import pandas as pd
 import sqlite3
 import os
 
-def export_exact_format(dbPath='movies.db', outputPath='csv_for_algo.csv'):
+def export_to_algo_csv(dbPath='movies.db', outputPath='csv_for_algo.csv'):
     if not os.path.exists(dbPath):
         print(f"Error: Database '{dbPath}' not found.")
         return
@@ -31,4 +31,4 @@ def export_exact_format(dbPath='movies.db', outputPath='csv_for_algo.csv'):
     conn.close()
 
 if __name__ == "__main__":
-    export_exact_format()
+    export_to_algo_csv()
