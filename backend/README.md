@@ -17,12 +17,27 @@ you must have final_recommender_dataset.csv in your local backend folder
 run the final_csv_to_db.py to turn it into a db if you have not build the db yet
 run final_db_to_csv.py if you want to turn the db into a csv for using for the algo
 
-# Algo stuff
-currently in demo state
-algo class can take in either title with get_recommendations_from_title or index of csv through get_recommendations_from_idx
-csv_for_algo.csv must be in the backend directory to work
+# Algo frontend info
+the algo is integrated into the backend class stored in main.py
+just call app.get_rec() to get a recommendation
+this works if no content is in the liked list so always just call app.get_rec() for recs in ALL cases
 
-# Algo stuff
+example loop is just call algo function to get first piece of content -> user likes/dislikes -> call like/dislike backend functions -> call algo function to get next piece of content
+
+example of algo use:
+while True:
+        user_input = ''
+        rec = app.get_rec()
+
+        while user_input != 'y' and user_input != 'n':
+            user_input = input(f"Do you like this content? (y/n):\n{rec}\nEnter input: ")
+            print()
+        if user_input == 'y':
+            app.add_match(rec)
+        elif user_input == 'n':
+            app.add_dislike(rec)
+
+# Algo backend info
 NOTE:
 csv_for_algo.csv must be in the backend directory to work
 
