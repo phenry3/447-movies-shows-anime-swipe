@@ -33,7 +33,7 @@ class MovieRecommender:
             
         return comma_sep_company_string
     
-    # serving top 5 recommendations from index
+    # serving a recommendation from index
     # chooses a random rec index with weight favoring in order -> index 0 is 10x more likely that index 10
     def get_recommendations_from_idx(self, index):
         scores = cosine_similarity(self.movie_matrix[index:index+1], self.movie_matrix)[0]
