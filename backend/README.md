@@ -31,6 +31,7 @@ ONLY entry point: serving_rec(liked_array)
 - output: one recommended movie title (string)
 
 new media probability (else rec based on liked list):
+NOTE: if a recomendation is going to be made that is already in the watchlist, new content is served instead
 - liked < 10: 50% new / 50% liked-based
 - 10 <= liked < 20: 30% new / 70% liked-based
 - liked >= 20: 15% new / 85% liked-based

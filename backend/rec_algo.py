@@ -90,7 +90,9 @@ class MovieRecommender:
         if new_media == False:
             i = random.randrange(liked_size)
             random_title = liked_array[i]
-            print(random_title + ":") # [TESTING]
             rec = self.get_recommendations_from_title(random_title)
+
+            if rec in liked_array: # handling case where rec is in watchlist to prevent duplicates
+                rec = self.serving_rec(liked_array)
 
         return rec
