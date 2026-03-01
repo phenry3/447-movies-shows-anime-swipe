@@ -71,6 +71,8 @@ class MovieRecommender:
         liked_size = len(liked_array)
         new_media_roll = random.randrange(100) + 1
         new_media = False
+        liked_content_retry = 10
+        max_new_content_retry = 10
         rec = ""
 
         # controls if new media is served based on spec
@@ -85,18 +87,37 @@ class MovieRecommender:
         
         # serving recommendation based on watchlist
         if new_media == False:
-            i = random.randrange(liked_size)
-            random_title = liked_array[i]
-            rec = self.get_recommendations_from_title(random_title)
+            eligible_content = False
 
-            # handling case where rec is in watchlist or dislike to prevent duplicate serving
-            if rec in liked_array or rec in dislike_array:
-                new_media = True # serving random content -> works with assumption unlikely new media will be dup
+            # looping for max 10 tries attempting to find content that can be recommended
+            for attempts in range(liked_content_retry):
+                i = random.randrange(liked_size)
+                random_title = liked_array[i]
+                rec = self.get_recommendations_from_title(random_title)
+
+                # handling case where rec is in watchlist or dislike to prevent duplicate serving
+                if rec not in liked_array and not rec in dislike_array:
+                    eligible_content = True
+                    break
+                        
+            # worst case just recommend random new content
+            if eligible_content == False:
+                new_media = True # serving random content -> unlikely new media will be dup anyways
             
         # serving new media
+        # NOTE: no need to have a case for no eligible content as last piece of content will be served
         if new_media == True:
-            num_indexes = self.movie_matrix.shape[0]
-            i = random.randrange(num_indexes)
-            rec = self.get_recommendations_from_idx(i)
+            eligible_content = False
+
+            # looping for max 10 tries attempting to find content that can be recommended
+            for attempts in range(max_new_content_retry):
+                num_indexes = self.movie_matrix.shape[0]
+                i = random.randrange(num_indexes)
+                rec = self.get_recommendations_from_idx(i)
+
+                # handling case where rec is in watchlist or dislike to prevent duplicate serving
+                if rec not in liked_array and not rec in dislike_array:
+                    eligible_content = True
+                    break
 
         return rec

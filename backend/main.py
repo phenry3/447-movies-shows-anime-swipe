@@ -99,16 +99,16 @@ if __name__ == "__main__":
     # print(app.get_match_titles())
     # print(app.get_dislike_titles())
 
-    # while True:
-    #     user_input = ''
-    #     rec = app.get_rec()
+    while True:
+        user_input = ''
+        rec = app.get_rec()
 
-    #     while user_input != 'y' and user_input != 'n':
-    #         user_input = input(f"Do you like this content? (y/n):\n{rec}\nEnter input: ")
-    #         print()
-    #     if user_input == 'y':
-    #         app.add_match(rec)
-    #     elif user_input == 'n':
-    #         app.add_dislike(rec)
+        while user_input != 'y' and user_input != 'n':
+            user_input = input(f"Do you like this content? (y/n):\n{rec}\nEnter input: ")
+            print()
+        if user_input == 'y':
+            app.add_match(rec)
+        elif user_input == 'n':
+            app.add_dislike(rec)
 
         
