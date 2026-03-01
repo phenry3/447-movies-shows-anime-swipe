@@ -135,12 +135,6 @@ class MovieRecommender:
                         
             # worst case just recommend random new content
             if eligible_content == False:
-                # [TESTING]
-                if rec in dislike_array:
-                    print("DISLIKE ARRAY CHECK HIT SERVING RANDOM CONTENT")
-                elif rec in liked_array:
-                    print("LIKED ARRAY CHECK HIT SERVING RANDOM CONTENT")
-
                 new_media = True # serving random content -> unlikely new media will be dup anyways
             
         # serving new media
