@@ -73,9 +73,12 @@ class MovieBackend:
         conn.close()
         return df.to_dict(orient='records')
     
+    def get_dislike_titles(self):
+        return [d['title'] for d in self.get_dislikes() if d.get('title')]
+    
     # --- Algo Logic ---
     def get_rec(self):
-        return self.recommender.serving_rec(self.get_match_titles())
+        return self.recommender.serving_rec(self.get_match_titles(), self.get_dislike_titles())
 
 if __name__ == "__main__":
     app = MovieBackend()
@@ -93,16 +96,19 @@ if __name__ == "__main__":
     #app.add_match("Mission to Mir")
     #print(app.get_rec())
     #print(app.get_rec())
-    #print(app.get_match_titles())
+    # print(app.get_match_titles())
+    # print(app.get_dislike_titles())
 
-    while True:
-        user_input = ''
-        rec = app.get_rec()
+    # while True:
+    #     user_input = ''
+    #     rec = app.get_rec()
 
-        while user_input != 'y' and user_input != 'n':
-            user_input = input(f"Do you like this content? (y/n):\n{rec}\nEnter input: ")
-            print()
-        if user_input == 'y':
-            app.add_match(rec)
+    #     while user_input != 'y' and user_input != 'n':
+    #         user_input = input(f"Do you like this content? (y/n):\n{rec}\nEnter input: ")
+    #         print()
+    #     if user_input == 'y':
+    #         app.add_match(rec)
+    #     elif user_input == 'n':
+    #         app.add_dislike(rec)
 
         

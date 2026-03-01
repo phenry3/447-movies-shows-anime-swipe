@@ -67,8 +67,7 @@ class MovieRecommender:
     # 0 < liked < 8: 35% chance new content, 65% chance liked-based rec
     # 8 <= liked < 15: 20% chance new content, 80% chance liked-based rec
     # liked >= 15: 10% chance new content, 90% chance liked-based rec
-    
-    def serving_rec(self, liked_array):
+    def serving_rec(self, liked_array, dislike_array):
         liked_size = len(liked_array)
         new_media_roll = random.randrange(100) + 1
         new_media = False
@@ -84,19 +83,20 @@ class MovieRecommender:
         elif liked_size >= 15 and new_media_roll <= 10: # liked content >= 8
             new_media = True
         
-        # serving new media
-        if new_media == True:
-            num_indexes = self.movie_matrix.shape[0]
-            i = random.randrange(num_indexes)
-            rec = self.get_recommendations_from_idx(i)
-        
         # serving recommendation based on watchlist
         if new_media == False:
             i = random.randrange(liked_size)
             random_title = liked_array[i]
             rec = self.get_recommendations_from_title(random_title)
 
-            if rec in liked_array: # handling case where rec is in watchlist to prevent duplicates
-                rec = self.serving_rec(liked_array)
+            # handling case where rec is in watchlist or dislike to prevent duplicate serving
+            if rec in liked_array or rec in dislike_array:
+                new_media = True # serving random content -> works with assumption unlikely new media will be dup
+            
+        # serving new media
+        if new_media == True:
+            num_indexes = self.movie_matrix.shape[0]
+            i = random.randrange(num_indexes)
+            rec = self.get_recommendations_from_idx(i)
 
         return rec
