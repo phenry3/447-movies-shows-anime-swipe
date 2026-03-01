@@ -34,14 +34,14 @@ class MovieRecommender:
         return comma_sep_company_string
     
     # serving a recommendation from index
-    # chooses a random rec index with weight favoring in order -> index 0 is 10x more likely that index 10
+    # chooses a random rec index with weight favoring in order
     def get_recommendations_from_idx(self, index):
         scores = cosine_similarity(self.movie_matrix[index:index+1], self.movie_matrix)[0]
         sorted_indices = np.argsort(scores)
         top_5_indices = sorted_indices[-11:-1] # constructing list of top 10 most similar movies in order of similarity
         
         recommended_titles = self.movies['title'].iloc[top_5_indices].tolist()
-        rec_idx = random.choices(range(10), weights=[10,9,8,7,6,5,4,3,2,1], k=1)[0] # chooses a random rec index
+        rec_idx = random.choices(range(10), weights=[20,20,20,20,20,5,3,2,1,1], k=1)[0] # chooses a random rec index
 
         return recommended_titles[::-1][rec_idx]
     
@@ -71,8 +71,8 @@ class MovieRecommender:
         liked_size = len(liked_array)
         new_media_roll = random.randrange(100) + 1
         new_media = False
-        liked_content_retry = 10
-        max_new_content_retry = 10
+        liked_content_retry = 5
+        max_new_content_retry = 5
         rec = ""
 
         # controls if new media is served based on spec
@@ -102,6 +102,12 @@ class MovieRecommender:
                         
             # worst case just recommend random new content
             if eligible_content == False:
+                # [TESTING]
+                if rec in dislike_array:
+                    print("DISLIKE ARRAY CHECK HIT SERVING RANDOM CONTENT")
+                elif rec in liked_array:
+                    print("LIKED ARRAY CHECK HIT SERVING RANDOM CONTENT")
+
                 new_media = True # serving random content -> unlikely new media will be dup anyways
             
         # serving new media

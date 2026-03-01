@@ -40,9 +40,10 @@ NOTE: if a recomendation is going to be made that is already in the watchlist, n
 when generating a rec (either from new media seed or a random liked title):
 - computes cosine similarity on one-hot features (companies/genres/countries/language/keywords)
 - takes top 10 most similar movies (excluding itself)
-- returns ONE title chosen with weights [10,9,8,7,6,5,4,3,2,1]
-  (rank1=18.18%, rank2=16.36%, rank3=14.55%, rank4=12.73%, rank5=10.91%,
-   rank6=9.09%, rank7=7.27%, rank8=5.45%, rank9=3.64%, rank10=1.82%)
+- returns ONE title chosen with weights [20,20,20,20,20,5,3,2,1,1]
+    - top 5 equal likelygood reduces liked/dislike array collisions 
+  (rank1=17.86%, rank2=17.86%, rank3=17.86%, rank4=17.86%, rank5=17.86%,
+   rank6=4.46%, rank7=2.68%, rank8=1.79%, rank9=0.89%, rank10=0.89%)
 
 # Main Backend Logic (main.py)
 This is the controller for the whole backend. It handles the 'matches' and 'dislikes' tables which have the same schema as the main movies table. 
