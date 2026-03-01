@@ -78,11 +78,11 @@ class MovieRecommender:
         # controls if new media is served based on spec
         if liked_size == 0:
             new_media = True
-        elif liked_size < 8 and new_media_roll <= 35: # liked content < 4
+        elif liked_size < 8 and new_media_roll <= 35: # liked content < 8
             new_media = True
-        elif liked_size < 15 and new_media_roll <= 20: # liked content < 8
+        elif liked_size < 15 and new_media_roll <= 20: # liked content < 15
             new_media = True
-        elif liked_size >= 15 and new_media_roll <= 10: # liked content >= 8
+        elif liked_size >= 15 and new_media_roll <= 10: # liked content >= 15
             new_media = True
         
         # serving recommendation based on watchlist
@@ -108,10 +108,10 @@ class MovieRecommender:
         # NOTE: no need to have a case for no eligible content as last piece of content will be served
         if new_media == True:
             eligible_content = False
+            num_indexes = self.movie_matrix.shape[0]
 
             # looping for max 10 tries attempting to find content that can be recommended
             for attempts in range(max_new_content_retry):
-                num_indexes = self.movie_matrix.shape[0]
                 i = random.randrange(num_indexes)
                 rec = self.get_recommendations_from_idx(i)
 
