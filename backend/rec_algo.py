@@ -58,7 +58,7 @@ class MovieRecommender:
         top_5_indices = sorted_indices[-11:-1] # constructing list of top 10 most similar movies in order of similarity
         
         recommended_titles = self.movies['title'].iloc[top_5_indices].tolist()
-        rec_idx = random.choices(range(10), weights=[10,9,8,7,6,5,4,3,2,1], k=1)[0] # chooses a random rec index
+        rec_idx = random.choices(range(10), weights=[20,20,20,20,20,5,3,2,1,1], k=1)[0] # chooses a random rec index
 
         return recommended_titles[::-1][rec_idx]
     
