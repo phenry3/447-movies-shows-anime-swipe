@@ -1,8 +1,9 @@
 import pandas as pd
 import numpy as np
 import ast
-from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.feature_extraction.text import TfidfVectorizer
+from scipy.sparse import hstack
 import random
 
 class MovieRecommender:
@@ -11,12 +12,36 @@ class MovieRecommender:
         self.movies = pd.read_csv("csv_for_algo.csv", low_memory=False)
         self.features = self.movies[['production_companies','genres', 'production_countries', 'original_language', 'keywords']].fillna('').astype(str).copy()
 
-        # making everything one hot using count vectorizier + turning all nums not 0 to 1 and all 0s to 0
-        # making it so each movie has a long string instead of individual cols
-        df = self.features[['production_companies','genres', 'production_countries', 'original_language', 'keywords']].apply(lambda x: ' '.join(x), axis=1)
+        # making a vectorizer for each attribute
+        tfidf_genre = TfidfVectorizer(stop_words='english')
+        tfidf_keyword = TfidfVectorizer(stop_words='english')
+        tfidf_language = TfidfVectorizer(stop_words='english')
+        tfidf_country = TfidfVectorizer(stop_words='english')
+        tfidf_company = TfidfVectorizer(stop_words='english')
 
-        tfidf = TfidfVectorizer(stop_words='english')
-        self.movie_matrix = tfidf.fit_transform(df)
+        # breaking each feature into its own matrix
+        genre_matrix = tfidf_genre.fit_transform(self.features['genres'])
+        keyword_matrix = tfidf_keyword.fit_transform(self.features['keywords'])
+        language_matrix = tfidf_language.fit_transform(self.features['original_language'])
+        country_matrix = tfidf_country.fit_transform(self.features['production_countries'])
+        company_matrix = tfidf_company.fit_transform(self.features['production_companies'])
+
+        # making the weights for how much each attribute matrix matters
+        weight_genre = 0.6
+        weight_keyword = 0.4
+        weight_language = 0.3
+        weight_country = 0.15
+        weight_company = 0.1
+
+        # multiplying each matrix by its specific weight
+        weighted_genre = genre_matrix * weight_genre
+        weighted_keyword = keyword_matrix * weight_keyword
+        weighted_language = language_matrix * weight_language
+        weighted_country = country_matrix * weight_country
+        weighted_company = company_matrix * weight_company
+
+        # creating the final movie matrix as a combination of the weighted attribute matrixs
+        self.movie_matrix = hstack([weighted_genre, weighted_keyword, weighted_language, weighted_country, weighted_company])
 
     # takes all companies from the company json and converts them to
     # a comma seperated string
