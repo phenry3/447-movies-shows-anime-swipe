@@ -90,7 +90,7 @@ if __name__ == "__main__":
     # print("Dislikes:", app.get_dislikes())
 
     # algo demo
-    #app.add_match("Naruto")
+    app.add_match("Naruto")
     #app.add_match("Interstellar")
     #app.add_match("The Black Hole")
     #app.add_match("Mission to Mir")

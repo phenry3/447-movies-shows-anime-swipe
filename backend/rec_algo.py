@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 import ast
 from sklearn.metrics.pairwise import cosine_similarity
-from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
 from scipy.sparse import hstack
 import random
 
@@ -13,24 +13,24 @@ class MovieRecommender:
         self.features = self.movies[['production_companies','genres', 'production_countries', 'original_language', 'keywords']].fillna('').astype(str).copy()
 
         # making a vectorizer for each attribute
-        tfidf_genre = TfidfVectorizer(stop_words='english')
+        count_genre = CountVectorizer(stop_words='english')
+        count_language = CountVectorizer()
+        count_country = CountVectorizer()
         tfidf_keyword = TfidfVectorizer(stop_words='english')
-        tfidf_language = TfidfVectorizer(stop_words='english')
-        tfidf_country = TfidfVectorizer(stop_words='english')
         tfidf_company = TfidfVectorizer(stop_words='english')
 
         # breaking each feature into its own matrix
-        genre_matrix = tfidf_genre.fit_transform(self.features['genres'])
+        genre_matrix = count_genre.fit_transform(self.features['genres'])
         keyword_matrix = tfidf_keyword.fit_transform(self.features['keywords'])
-        language_matrix = tfidf_language.fit_transform(self.features['original_language'])
-        country_matrix = tfidf_country.fit_transform(self.features['production_countries'])
+        language_matrix = count_language.fit_transform(self.features['original_language'])
+        country_matrix = count_country.fit_transform(self.features['production_countries'])
         company_matrix = tfidf_company.fit_transform(self.features['production_companies'])
 
         # making the weights for how much each attribute matrix matters
         weight_genre = 0.6
         weight_keyword = 0.4
-        weight_language = 0.3
-        weight_country = 0.15
+        weight_language = 0.4 
+        weight_country = 0.2
         weight_company = 0.1
 
         # multiplying each matrix by its specific weight
@@ -61,14 +61,18 @@ class MovieRecommender:
     # serving a recommendation from index
     # chooses a random rec index with weight favoring in order
     def get_recommendations_from_idx(self, index):
+        pool_size = 50
+        
         scores = cosine_similarity(self.movie_matrix[index:index+1], self.movie_matrix)[0]
         sorted_indices = np.argsort(scores)
-        top_5_indices = sorted_indices[-11:-1] # constructing list of top 10 most similar movies in order of similarity
+        top_50_indices = sorted_indices[-pool_size:-1] # constructing list pool_size most similar movies in order of similarity
         
-        recommended_titles = self.movies['title'].iloc[top_5_indices].tolist()
-        rec_idx = random.choices(range(10), weights=[20,20,20,20,20,5,3,2,1,1], k=1)[0] # chooses a random rec index
+        recommended_titles = self.movies['title'].iloc[top_50_indices].tolist()[::-1]
 
-        return recommended_titles[::-1][rec_idx]
+        dynamic_weights = [1.0 / ((i + 1) ** 0.5) for i in range(len(recommended_titles))]
+        rec_title = random.choices(recommended_titles, weights=dynamic_weights, k=1)[0] # chooses a random rec index
+
+        return rec_title
     
     # serving a recommendation from title
     # takes top 10 recs based on the title and gives an inverse log chance of returning content by order
@@ -76,16 +80,19 @@ class MovieRecommender:
     def get_recommendations_from_title(self, title):
         if title not in self.movies['title'].values:
             return f"Error: '{title}' not found in the database."
+        pool_size = 50
         
         row_idx = np.where(self.movies['title'] == title)[0][0]
         scores = cosine_similarity(self.movie_matrix[row_idx : row_idx + 1], self.movie_matrix)[0]
         sorted_indices = np.argsort(scores)
-        top_5_indices = sorted_indices[-11:-1] # constructing list of top 10 most similar movies in order of similarity
+        top_50_indices = sorted_indices[-pool_size:-1] # constructing list of pool_size most similar movies in order of similarity
         
-        recommended_titles = self.movies['title'].iloc[top_5_indices].tolist()
-        rec_idx = random.choices(range(10), weights=[20,20,20,20,20,5,3,2,1,1], k=1)[0] # chooses a random rec index
+        recommended_titles = self.movies['title'].iloc[top_50_indices].tolist()[::-1]
+        
+        dynamic_weights = [1.0 / ((i + 1) ** 0.5) for i in range(len(recommended_titles))]
+        rec_title = random.choices(recommended_titles, weights=dynamic_weights, k=1)[0] # chooses a random rec index
 
-        return recommended_titles[::-1][rec_idx]
+        return rec_title
     
     # serving recommendation based on an array of liked content
     # GOAL -> recommend based on taste asap
