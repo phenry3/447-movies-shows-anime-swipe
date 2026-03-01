@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import ast
-from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 import random
 
@@ -15,8 +15,8 @@ class MovieRecommender:
         # making it so each movie has a long string instead of individual cols
         df = self.features[['production_companies','genres', 'production_countries', 'original_language', 'keywords']].apply(lambda x: ' '.join(x), axis=1)
 
-        cv = CountVectorizer(binary=True)
-        self.movie_matrix = cv.fit_transform(df) # this is the final movie matrix
+        tfidf = TfidfVectorizer(stop_words='english')
+        self.movie_matrix = tfidf.fit_transform(df)
 
     # takes all companies from the company json and converts them to
     # a comma seperated string

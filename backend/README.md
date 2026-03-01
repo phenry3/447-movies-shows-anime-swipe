@@ -44,6 +44,7 @@ when generating a rec (either from new media seed or a random liked title):
     - top 5 equal likelygood reduces liked/dislike array collisions 
   (rank1=17.86%, rank2=17.86%, rank3=17.86%, rank4=17.86%, rank5=17.86%,
    rank6=4.46%, rank7=2.68%, rank8=1.79%, rank9=0.89%, rank10=0.89%)
+- runs retry logic if a collision is found on liked list or disliked list
 
 # Main Backend Logic (main.py)
 This is the controller for the whole backend. It handles the 'matches' and 'dislikes' tables which have the same schema as the main movies table. 
