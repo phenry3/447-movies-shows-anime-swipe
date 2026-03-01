@@ -2,11 +2,13 @@ import sqlite3
 import pandas as pd
 from final_csv_to_db import initDatabase
 from final_db_to_csv import export_to_algo_csv
+from rec_algo import MovieRecommender
 
 class MovieBackend:
     def __init__(self, db_path='movies.db'):
         self.db_path = db_path
         self._create_tables()
+        self.recommender = MovieRecommender() 
 
     def _create_tables(self):
         """Creates matches and dislikes tables with the same structure as movies."""
@@ -44,6 +46,10 @@ class MovieBackend:
         df = pd.read_sql_query("SELECT * FROM matches", conn)
         conn.close()
         return df.to_dict(orient='records')
+    
+    def get_match_titles(self):
+        return [m['title'] for m in self.get_matches() if m.get('title')]
+        
 
     # --- Dislike Logic ---
     def add_dislike(self, title):
@@ -66,6 +72,10 @@ class MovieBackend:
         df = pd.read_sql_query("SELECT * FROM dislikes", conn)
         conn.close()
         return df.to_dict(orient='records')
+    
+    # --- Algo Logic ---
+    def get_rec(self):
+        return self.recommender.serving_rec(self.get_match_titles())
 
 if __name__ == "__main__":
     app = MovieBackend()
@@ -75,3 +85,24 @@ if __name__ == "__main__":
     # app.add_dislike("Jumanji")
     # print("Matches:", app.get_matches())
     # print("Dislikes:", app.get_dislikes())
+
+    # algo demo
+    #app.add_match("Toy Story")
+    #app.add_match("Interstellar")
+    #app.add_match("The Black Hole")
+    #app.add_match("Mission to Mir")
+    #print(app.get_rec())
+    #print(app.get_rec())
+    #print(app.get_match_titles())
+
+    while True:
+        user_input = ''
+        rec = app.get_rec()
+
+        while user_input != 'y' and user_input != 'n':
+            user_input = input(f"Do you like this content? (y/n):\n{rec}\nEnter input: ")
+            print()
+        if user_input == 'y':
+            app.add_match(rec)
+
+        
