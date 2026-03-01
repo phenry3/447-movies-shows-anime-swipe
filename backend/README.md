@@ -21,6 +21,27 @@ run final_db_to_csv.py if you want to turn the db into a csv for using for the a
 currently in demo state
 algo class can take in either title with get_recommendations_from_title or index of csv through get_recommendations_from_idx
 csv_for_algo.csv must be in the backend directory to work
+
+# Algo stuff
+NOTE:
+csv_for_algo.csv must be in the backend directory to work
+
+ONLY entry point: serving_rec(liked_array)
+- input: liked_array = list of liked movie titles (strings)
+- output: one recommended movie title (string)
+
+new media probability (else rec based on liked list):
+- liked < 10: 50% new / 50% liked-based
+- 10 <= liked < 20: 30% new / 70% liked-based
+- liked >= 20: 15% new / 85% liked-based
+
+when generating a rec (either from new media seed or a random liked title):
+- computes cosine similarity on one-hot features (companies/genres/countries/language/keywords)
+- takes top 10 most similar movies (excluding itself)
+- returns ONE title chosen with weights [10,9,8,7,6,5,4,3,2,1]
+  (rank1=18.18%, rank2=16.36%, rank3=14.55%, rank4=12.73%, rank5=10.91%,
+   rank6=9.09%, rank7=7.27%, rank8=5.45%, rank9=3.64%, rank10=1.82%)
+
 # Main Backend Logic (main.py)
 This is the controller for the whole backend. It handles the 'matches' and 'dislikes' tables which have the same schema as the main movies table. 
 
