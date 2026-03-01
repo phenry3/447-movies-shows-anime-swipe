@@ -33,9 +33,9 @@ ONLY entry point: serving_rec(liked_array)
 new media probability (else rec based on liked list):
 NOTE: if a recomendation is going to be made that is already in the watchlist, new content is served instead
 - liked == 0: 100% new / 0% liked-based (serve random/new content)
-- 0 < liked < 4: 30% new / 70% liked-based
-- 4 <= liked < 8: 15% new / 85% liked-based
-- liked >= 8: 7% new / 93% liked-based
+- 0 < liked < 8: 35% new / 65% liked-based
+- 8 <= liked < 15: 20% new / 80% liked-based
+- liked >= 15: 10% new / 90% liked-based
 
 when generating a rec (either from new media seed or a random liked title):
 - computes cosine similarity on one-hot features (companies/genres/countries/language/keywords)

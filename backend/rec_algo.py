@@ -64,9 +64,10 @@ class MovieRecommender:
     
     # serving recommendation based on an array of liked content
     # if nothing in list (liked_size == 0), serve new/random content
-    # liked < 4: 30% chance new content (equally distributed), 70% chance liked-based rec
-    # 4 <= liked < 8: 15% chance new content (equally distributed), 85% chance liked-based rec
-    # liked >= 8: 7% chance new content (equally distributed), 93% chance liked-based rec
+    # 0 < liked < 8: 35% chance new content, 65% chance liked-based rec
+    # 8 <= liked < 15: 20% chance new content, 80% chance liked-based rec
+    # liked >= 15: 10% chance new content, 90% chance liked-based rec
+    
     def serving_rec(self, liked_array):
         liked_size = len(liked_array)
         new_media_roll = random.randrange(100) + 1
@@ -76,11 +77,11 @@ class MovieRecommender:
         # controls if new media is served based on spec
         if liked_size == 0:
             new_media = True
-        elif liked_size < 4 and new_media_roll <= 30: # liked content < 4
+        elif liked_size < 8 and new_media_roll <= 35: # liked content < 4
             new_media = True
-        elif liked_size < 8 and new_media_roll <= 15: # liked content < 8
+        elif liked_size < 15 and new_media_roll <= 20: # liked content < 8
             new_media = True
-        elif liked_size >= 8 and new_media_roll <= 7: # liked content >= 8
+        elif liked_size >= 15 and new_media_roll <= 10: # liked content >= 8
             new_media = True
         
         # serving new media
