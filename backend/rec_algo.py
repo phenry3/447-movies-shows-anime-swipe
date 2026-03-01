@@ -3,6 +3,7 @@ import numpy as np
 import ast
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+import random
 
 class MovieRecommender:
     def __init__(self):
@@ -32,16 +33,21 @@ class MovieRecommender:
             
         return comma_sep_company_string
     
-    # serving top 5 recommendations
+    # serving top 5 recommendations from index
+    # chooses a random rec index with weight favoring in order -> index 0 is 10x more likely that index 10
     def get_recommendations_from_idx(self, index):
         scores = cosine_similarity(self.movie_matrix[index:index+1], self.movie_matrix)[0]
         sorted_indices = np.argsort(scores)
-        top_5_indices = sorted_indices[-6:-1]
+        top_5_indices = sorted_indices[-11:-1] # constructing list of top 10 most similar movies in order of similarity
         
         recommended_titles = self.movies['title'].iloc[top_5_indices].tolist()
+        rec_idx = random.choices(range(10), weights=[10,9,8,7,6,5,4,3,2,1], k=1)[0] # chooses a random rec index
 
-        return recommended_titles[::-1]
+        return recommended_titles[::-1][rec_idx]
     
+    # serving a recommendation from title
+    # takes top 10 recs based on the title and gives an inverse log chance of returning content by order
+    # chooses a random rec index with weight favoring in order -> index 0 is 10x more likely that index 10
     def get_recommendations_from_title(self, title):
         if title not in self.movies['title'].values:
             return f"Error: '{title}' not found in the database."
@@ -49,25 +55,88 @@ class MovieRecommender:
         row_idx = np.where(self.movies['title'] == title)[0][0]
         scores = cosine_similarity(self.movie_matrix[row_idx : row_idx + 1], self.movie_matrix)[0]
         sorted_indices = np.argsort(scores)
-        top_5_indices = sorted_indices[-6:-1]
+        top_5_indices = sorted_indices[-11:-1] # constructing list of top 10 most similar movies in order of similarity
         
         recommended_titles = self.movies['title'].iloc[top_5_indices].tolist()
+        rec_idx = random.choices(range(10), weights=[10,9,8,7,6,5,4,3,2,1], k=1)[0] # chooses a random rec index
 
-        return recommended_titles[::-1]
+        return recommended_titles[::-1][rec_idx]
+    
+    # serving recommendation based on a an array of liked content
+    # liked content < 10: 50% chance new content, equally distributed 50% chance rec based on liked media
+    # liked content > 10 but < 20: 30% chance new content, equally distributed 70% chance rec based on liked media
+    # liked content > 20: 15% chance new media, equally distributed 85% chance rec based on liked media
+    def serving_rec(self, liked_array):
+        liked_size = len(liked_array)
+        new_media_roll = random.randrange(100) + 1
+        new_media = False
+        rec = ""
 
+        # controls if new media is served based on spec
+        if liked_size < 10 and new_media_roll <= 50: # liked content < 10
+            new_media = True
+        elif liked_size < 20 and new_media_roll <= 30: # liked content > 10
+            new_media = True
+        elif liked_size >= 20 and new_media_roll <= 15: # liked content > 20
+            new_media = True
+        
+        # serving new media
+        if new_media == True:
+            num_indexes = self.movie_matrix.shape[0]
+            i = random.randrange(num_indexes)
+            rec = self.get_recommendations_from_idx(i)
+        
+        # serving recommendation based on watchlist
+        if new_media == False:
+            i = random.randrange(liked_size)
+            random_title = liked_array[i]
+            print(random_title + ":") # [TESTING]
+            rec = self.get_recommendations_from_title(random_title)
 
-# NOTE: Remove this demo later, this class will be created and called from backend of site 
+        return rec
+            
+        
+# Case 1: liked_size < 10  (50% new media)
+liked_under_10 = [
+    "Toy Story", "The Matrix", "Inception", "Spirited Away", "Titanic",
+    "The Lion King", "Interstellar", "Shrek", "Parasite"
+]  # size = 9
+
+# Case 2: 10 <= liked_size < 20  (30% new media)
+liked_10_to_19 = [
+    "Toy Story", "The Matrix", "Inception", "Spirited Away", "Titanic",
+    "The Lion King", "Interstellar", "Shrek", "Parasite", "Gladiator",
+    "The Godfather", "Pulp Fiction", "The Dark Knight", "Forrest Gump",
+    "Joker"
+]  # size = 15
+
+# Case 3: liked_size >= 20  (15% new media)
+liked_20_plus = [
+    "Toy Story", "The Matrix", "Inception", "Spirited Away", "Titanic",
+    "The Lion King", "Interstellar", "Shrek", "Parasite", "Gladiator",
+    "The Godfather", "Pulp Fiction", "The Dark Knight", "Forrest Gump",
+    "Joker", "Avatar", "Up", "Coco", "Finding Nemo", "WALL-E"
+]  # size = 20
+
 movie_rec = MovieRecommender()
+print(movie_rec.serving_rec(liked_under_10))
+print(movie_rec.serving_rec(liked_10_to_19))
+print(movie_rec.serving_rec(liked_20_plus))
 
-# DEMO: gets a few recommendations from index
-for i in range(5):
-    print(f"Recommendation for movie: {movie_rec.movies['title'].iloc[i]}:")
-    print(f"{movie_rec.get_recommendations_from_idx(i)}\n")
+# [TESTING] -> add random functionality to content serving functions so you dont serve the same rec for the same media type
 
-# demo seperator
-print("---------------------------------------------------\n")
+# # NOTE: Remove this demo later, this class will be created and called from backend of site 
+# movie_rec = MovieRecommender()
 
-# DEMO: gets recommendation based on title
-title = "Toy Story"
-print(f"Recommendation for movie: {title}:")
-print(f"{movie_rec.get_recommendations_from_title(title)}\n")
+# # DEMO: gets a few recommendations from index
+# for i in range(5):
+#     print(f"Recommendation for movie: {movie_rec.movies['title'].iloc[i]}:")
+#     print(f"{movie_rec.get_recommendations_from_idx(i)}\n")
+
+# # demo seperator
+# print("---------------------------------------------------\n")
+
+# # DEMO: gets recommendation based on title
+# title = "Toy Story"
+# print(f"Recommendation for movie: {title}:")
+# print(f"{movie_rec.get_recommendations_from_title(title)}\n")
