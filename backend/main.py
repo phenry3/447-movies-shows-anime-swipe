@@ -30,24 +30,36 @@ class MovieBackend:
 
     # --- Matches Logic ---
     def add_match(self, title):
+        """
+            this needs to be modifiable by the front end via API call
+        """
         conn = sqlite3.connect(self.db_path)
         conn.execute("INSERT INTO matches SELECT * FROM movies WHERE title = ?", (title,))
         conn.commit()
         conn.close()
 
     def remove_match(self, title):
+        """
+            this needs to be modifiable by the front end via API call
+        """
         conn = sqlite3.connect(self.db_path)
         conn.execute("DELETE FROM matches WHERE title = ?", (title,))
         conn.commit()
         conn.close()
 
     def get_matches(self):
+        """
+            this needs to be modifiable by the front end via API call
+        """
         conn = sqlite3.connect(self.db_path)
         df = pd.read_sql_query("SELECT * FROM matches", conn)
         conn.close()
         return df.to_dict(orient='records')
     
     def get_match_titles(self):
+        """
+            this needs to be modifiable by the front end via API call
+        """
         return [m['title'] for m in self.get_matches() if m.get('title')]
         
 
@@ -77,6 +89,10 @@ class MovieBackend:
         return [d['title'] for d in self.get_dislikes() if d.get('title')]
     
     # --- Algo Logic ---
+    """
+        this needs to be an API call!!!
+        We need to add a put to modify the like in the database
+    """
     def get_rec(self):
         return self.recommender.serving_rec(self.get_match_titles(), self.get_dislike_titles())
 
