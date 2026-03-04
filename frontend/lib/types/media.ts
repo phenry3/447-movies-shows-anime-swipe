@@ -1,5 +1,4 @@
 export type MediaItem = {
-    uid : string;
     media_type : "movie" | "tv" | "anime";
     title : string;
     overview : string;
@@ -8,3 +7,10 @@ export type MediaItem = {
     release_date : string; 
     vote_average : number;
 }
+
+
+export type FeedbackPaylaod ={
+    title : string;
+    action : "like" | "dislike";
+};
+
