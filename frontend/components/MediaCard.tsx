@@ -2,8 +2,13 @@ import Image from "next/image";
 import Link from "next/link";
 import type { MediaItem } from "@/lib/types/media";
 
+
 export function MediaCard({ item }: { item: MediaItem }) {
   const href = `/media/${encodeURIComponent(item.title)}`;
+
+  const imgSrc = item.thumbnail_url.startsWith("http")
+  ? item.thumbnail_url
+  : `https://image.tmdb.org/t/p/w500${item.thumbnail_url}`;
 
   return (
     <Link
@@ -13,7 +18,7 @@ export function MediaCard({ item }: { item: MediaItem }) {
       {/* Poster */}
       <div className="relative h-[600px] w-full">
         <Image
-          src={item.thumbnail_url}
+          src={imgSrc}
           alt={item.title}
           fill
           className="object-cover"
