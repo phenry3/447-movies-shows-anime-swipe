@@ -1,22 +1,42 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { MediaCard } from "@/components/MediaCard";
-import { mockMedia } from "@/lib/mock/mockMedia";
 import { Heart,X } from "lucide-react";
+import { getRec,sendFeedback} from "@/lib/api";
+import { MediaItem } from "@/lib/types/media";
 
 export default function DiscoveryPage() {
-  const [index, setIndex] = useState(0);
-  const item = mockMedia[index];
+  const [item, setItem] = useState<MediaItem | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  function dislike() {
-    setIndex((i) => (i + 1) % mockMedia.length);
+  
+  async function loadRec(){
+    setLoading(true);
+    try {
+      const rec = await getRec();
+      setItem(rec);
+    }
+    finally{
+      setLoading(false);
+    }
   }
 
-  function like() {
-    setIndex((i) => (i + 1) % mockMedia.length);
+  useEffect(() => {loadRec();}, []);
+
+  async function dislike() {
+    if (!item) return;
+    const next = await sendFeedback({title: item.title, action: "dislike"});
+    setItem(next);
   }
 
+  async function like() {
+    if (!item) return;
+    const next = await sendFeedback({title: item.title, action: "like"});
+    setItem(next);
+  }
+
+  if (loading) return <div>Loading...</div>
   if (!item) {
     return (
       <main className="min-h-screen bg-black text-white p-6">
