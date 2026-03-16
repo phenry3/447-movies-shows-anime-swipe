@@ -127,7 +127,7 @@ def feedback(payload: FeedbackIn):
 
 
 # To be used by the matches page
-@api.get("/api/matches", response_model=MediaItem)
+@api.get("/api/matches", response_model=List[MediaItem])
 def matches():
     rows = backend.get_matches()
     return [to_api_shape(r) for r in rows]
