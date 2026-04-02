@@ -67,3 +67,34 @@ Functions in MovieBackend class:
 * **add_match(title) / add_dislike(title)**: pulls the movie from the main table and tosses it into the liked or disliked list
 * **remove_match(title) / remove_dislike(title)**: deletes a movie from those lists if you change your mind
 * **get_matches() / get_dislikes()**: returns everything in those tables as a list of dicts for the frontend to use
+
+### `get_stats()`
+* **Purpose**: Retrieves the total count of items the user has interacted with.
+* **Logic**: Performs a `COUNT(*)` query on both the `matches` (liked) and `dislikes` tables.
+* **Return Format**: 
+    ```python
+    {"liked": int, "disliked": int}
+    ```
+* **Use Case**: Displaying high-level user stats like "Total Likes" or "Total Disliked" on a profile dashboard.
+
+### `get_genre_stats()`
+* **Purpose**: Generates a frequency map of genres based on the user's liked content.
+* **Logic**: 
+    1. Fetches all records from the `matches` table.
+    2. Uses a parser to split comma-separated genre strings (e.g., "Action, Sci-Fi").
+    3. Aggregates the occurrences of every unique genre.
+* **Return Format**: 
+    {"GenreName": count, "GenreName2": count}
+* **Use Case**: Feeding a **Genre Pie Chart** or "Top Genres" list.
+
+## API Endpoints (`api.py`)
+
+### `GET /api/stats`
+* **Function Called**: `backend.get_stats()`
+* **Description**: A public endpoint that returns the total liked/disliked counts.
+* **Frontend Integration**: Use this for general summary components or progress bars comparing likes vs. dislikes.
+
+### `GET /api/stats/genres`
+* **Function Called**: `backend.get_genre_stats()`
+* **Description**: A public endpoint that returns the tallies for every genre found in the user's liked list.
+* **Frontend Integration**: Designed for charting libraries (like Chart.js or Recharts). The frontend can map the object keys to labels and values to data slices for a pie or bar chart.

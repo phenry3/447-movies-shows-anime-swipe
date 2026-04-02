@@ -96,6 +96,37 @@ class MovieBackend:
     def get_rec(self):
         return self.recommender.serving_rec(self.get_match_titles(), self.get_dislike_titles())
 
+    def get_stats(self):
+        """Returns the total counts for matches and dislikes."""
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT COUNT(*) FROM matches")
+        liked_count = cursor.fetchone()[0]
+        
+        cursor.execute("SELECT COUNT(*) FROM dislikes")
+        disliked_count = cursor.fetchone()[0]
+        
+        conn.close()
+        return {"liked": liked_count, "disliked": disliked_count}
+
+    def get_genre_stats(self):
+        """Aggregates genre counts from liked content for the pie chart."""
+        conn = sqlite3.connect(self.db_path)
+        # We use pandas here because it handles the row-looping efficiently
+        df = pd.read_sql_query("SELECT genres FROM matches", conn)
+        conn.close()
+
+        genre_counts = {}
+        for row in df['genres'].dropna():
+            # Split "Action, Adventure" into ["Action", "Adventure"]
+            parts = [g.strip() for g in str(row).split(',') if g.strip()]
+            for genre in parts:
+                genre_counts[genre] = genre_counts.get(genre, 0) + 1
+        
+        # Returns: {"Animation": 5, "Comedy": 3, ...}
+        return genre_counts
+
 if __name__ == "__main__":
     app = MovieBackend()
     
