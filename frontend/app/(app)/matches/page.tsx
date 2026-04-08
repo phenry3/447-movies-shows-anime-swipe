@@ -4,15 +4,17 @@ import { useEffect, useState } from "react";
 import { MediaCard } from "@/components/MediaCard";
 import { getMatches } from "@/lib/api";
 import { MediaItem } from "@/lib/types/media";
+import { useSession } from "next-auth/react";
 
 export default function MatchesPage() {
+  const { data: session, status } = useSession();
   const [matches, setMatches] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  async function loadMatches() {
+  async function loadMatches(googleId: string) {
     setLoading(true);
     try {
-      const data = await getMatches();
+      const data = await getMatches(googleId);
       setMatches(data);
     } catch (err) {
       console.error("Failed to load matches:", err);
@@ -22,10 +24,17 @@ export default function MatchesPage() {
   }
 
   useEffect(() => {
-    loadMatches();
-  }, []);
+    if (status === "authenticated" && session?.user?.googleId) {
+      loadMatches(session.user.googleId);
+      return;
+    }
 
-  if (loading) return <div className="min-h-screen p-6 text-white">Loading...</div>;
+    if (status === "unauthenticated") {
+      setLoading(false);
+    }
+  }, [status, session?.user?.googleId]);
+
+  if (status === "loading" || loading) return <div className="min-h-screen p-6 text-white">Loading...</div>;
   if (matches.length === 0) return <div className="min-h-screen p-6 text-white">No matches yet.</div>;
 
   return (
