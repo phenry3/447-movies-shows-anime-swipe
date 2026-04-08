@@ -96,9 +96,52 @@ class MovieBackend:
     def get_dislike_titles(self):
         return [d['title'] for d in self.get_dislikes() if d.get('title')]
     
+    # --- User Logic ---
+    def create_user(self, google_id, email, email_verified, name, picture):
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.execute("INSERT OR IGNORE INTO users (google_id, email, email_verified, name, picture) VALUES (?, ?, ?, ?, ?)",
+                            (google_id, email, email_verified, name, picture))
+        conn.commit()
+        conn.close()
+        return "created" if cursor.rowcount else "already exists"
+
+    def delete_user(self, google_id):
+        conn = sqlite3.connect(self.db_path)
+        conn.execute("DELETE FROM matches WHERE google_id = ?", (google_id,))
+        conn.execute("DELETE FROM dislikes WHERE google_id = ?", (google_id,))
+        conn.execute("DELETE FROM users WHERE google_id = ?", (google_id,))
+        conn.commit()
+        conn.close()
+
+    def get_user_profile_info(self, google_id):
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        row = conn.execute("SELECT * FROM users WHERE google_id = ?", (google_id,)).fetchone()
+        conn.close()
+        return dict(row) if row else None
+
+
+    
     # --- Algo Logic ---
     def get_rec(self):
         return self.recommender.serving_rec(self.get_match_titles(), self.get_dislike_titles())
+    
+    # --- Dev Funcs ---
+    def print_schemas(self):
+        conn = sqlite3.connect(self.db_path)
+        for table in ['users', 'movies', 'matches', 'dislikes']:
+            print(f"\n--- {table} ---")
+            for row in conn.execute(f"PRAGMA table_info({table})"):
+                print(f"  {row[1]} ({row[2]})")
+        conn.close()
+
+    def print_all_db_info(self):
+        conn = sqlite3.connect(self.db_path)
+        for table in ['users', 'movies', 'matches', 'dislikes']:
+            print(f"\n--- {table} ---")
+            df = pd.read_sql_query(f"SELECT * FROM {table}", conn)
+            print(df)
+        conn.close()
 
 if __name__ == "__main__":
     app = MovieBackend()
@@ -110,6 +153,13 @@ if __name__ == "__main__":
     # print("Dislikes:", app.get_dislikes())
 
     
-    print(app.get_dislike_titles())
-    print(app.get_match_titles())
+    #print(app.get_dislike_titles())
+    #print(app.get_match_titles())
+
+    
+    app.create_user("1234567890", "test@gmail.com", True, "John Doe", "https://photo.url")
+    print(app.get_user_profile_info("1234567890"))
+
+    app.delete_user("1234567890")
+    app.print_all_db_info()
     
