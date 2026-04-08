@@ -183,27 +183,8 @@ if __name__ == "__main__":
     #print(app.get_match_titles())
 
     
-    # app.create_user("1234567890", "test@gmail.com", True, "John Doe", "https://photo.url")
-    # print(app.get_user_profile_info("1234567890"))
+    app.create_user("1234567890", "test@gmail.com", True, "John Doe", "https://photo.url")
+    print(app.get_user_profile_info("1234567890"))
 
-    # app.delete_user("1234567890")
-    # app.print_all_db_info()
-
-if __name__ == "__main__":
-    app = MovieBackend()
-
-    # Print initial state
-    print("=== INITIAL DB ===")
+    app.delete_user("1234567890")
     app.print_all_db_info()
-
-    # Create user
-    print("\n=== CREATE USER ===")
-    print(app.create_user("1234567890", "test@gmail.com", True, "John Doe", "https://photo.url"))
-
-    # Add matches
-    print("\n=== ADD MATCHES ===")
-    print(app.add_match("Toy Story", "1234567890"))
-    print(app.add_match("Jumanji", "1234567890"))
-
-    # Print titles
-    print(app.get_match_titles("1234567890"))
