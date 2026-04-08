@@ -90,8 +90,6 @@ class MovieBackend:
         conn.commit()
         conn.close()
 
-        return "success"
-
     def remove_match(self, title, google_id):
         # 1. check if google_id exists
         # 2. remove based on user_id match
@@ -117,36 +115,44 @@ class MovieBackend:
         conn.close()
         return df.to_dict(orient='records')
     
-    # [TESTING]
     def get_match_titles(self, google_id):
         return [m['title'] for m in self.get_matches(google_id) if m.get('title')]
         
-
-    # --- Dislike Logic ---
-    def add_dislike(self, title):
-        """Moves movie from 'movies' to 'dislikes' table."""
+    # --- Dislike Logic ---    
+    def add_dislike(self, title, google_id):
         conn = sqlite3.connect(self.db_path)
-        conn.execute("INSERT INTO dislikes SELECT * FROM movies WHERE title = ?", (title,))
+        user = conn.execute("SELECT 1 FROM users WHERE google_id = ?", (google_id,)).fetchone()
+        if not user:
+            conn.close()
+            return "Error: google_id not found"
+        conn.execute("INSERT INTO dislikes SELECT *, ? FROM movies WHERE title = ? AND NOT EXISTS (SELECT 1 FROM dislikes WHERE title = ? AND google_id = ?)",
+                    (google_id, title, title, google_id))
         conn.commit()
         conn.close()
 
-    def remove_dislike(self, title):
-        """Removes movie from 'dislikes' table."""
+    def remove_dislike(self, title, google_id):
         conn = sqlite3.connect(self.db_path)
-        conn.execute("DELETE FROM dislikes WHERE title = ?", (title,))
+        user = conn.execute("SELECT 1 FROM users WHERE google_id = ?", (google_id,)).fetchone()
+        if not user:
+            conn.close()
+            return "Error: google_id not found"
+        conn.execute("DELETE FROM dislikes WHERE title = ? AND google_id = ?", (title, google_id))
         conn.commit()
         conn.close()
 
-    def get_dislikes(self):
-        """Returns all disliked movies as a list of dictionaries."""
+    def get_dislikes(self, google_id):
         conn = sqlite3.connect(self.db_path)
-        df = pd.read_sql_query("SELECT * FROM dislikes", conn)
+        user = conn.execute("SELECT 1 FROM users WHERE google_id = ?", (google_id,)).fetchone()
+        if not user:
+            conn.close()
+            return "Error: google_id not found"
+        df = pd.read_sql_query("SELECT * FROM dislikes WHERE google_id = ?", conn, params=(google_id,))
         conn.close()
         return df.to_dict(orient='records')
-    
-    def get_dislike_titles(self):
-        return [d['title'] for d in self.get_dislikes() if d.get('title')]
-    
+
+    def get_dislike_titles(self, google_id):
+        return [d['title'] for d in self.get_dislikes(google_id) if d.get('title')]
+        
     
     # --- Algo Logic ---
     def get_rec(self):
@@ -184,7 +190,14 @@ if __name__ == "__main__":
 
     
     app.create_user("1234567890", "test@gmail.com", True, "John Doe", "https://photo.url")
-    print(app.get_user_profile_info("1234567890"))
 
-    app.delete_user("1234567890")
-    app.print_all_db_info()
+    print(app.add_dislike("Toy Story", "1234567890")) # added
+    print(app.add_dislike("Jumanji", "1234567890")) # added
+    print(app.add_dislike("Toy Story", "1234567890")) # should not duplicate
+    print(app.add_dislike("Toy Story", "bad_id")) # Error: google_id not found
+
+    print(app.get_dislikes("1234567890"))
+    print(app.get_dislike_titles("1234567890"))
+
+    app.remove_dislike("Toy Story", "1234567890")
+print(app.get_dislike_titles("1234567890")) # only Jumanji
