@@ -11,12 +11,32 @@ class MovieBackend:
         self.recommender = MovieRecommender() 
 
     def _create_tables(self):
-        """Creates matches and dislikes tables with the same structure as movies."""
         conn = sqlite3.connect(self.db_path)
-        # Create Matches table
+              
+        # Create users
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                google_id TEXT PRIMARY KEY,
+                email TEXT UNIQUE NOT NULL,
+                email_verified BOOLEAN,
+                name TEXT,
+                picture TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+
+        """Creates matches and dislikes tables with the same structure as movies with google_id as link to user."""
         conn.execute("CREATE TABLE IF NOT EXISTS matches AS SELECT * FROM movies WHERE 1=0")
-        # Create Dislikes table
         conn.execute("CREATE TABLE IF NOT EXISTS dislikes AS SELECT * FROM movies WHERE 1=0")
+
+        try:
+            conn.execute("ALTER TABLE matches ADD COLUMN google_id TEXT REFERENCES users(google_id)")
+            conn.execute("ALTER TABLE dislikes ADD COLUMN google_id TEXT REFERENCES users(google_id)")
+        except:
+            pass  # columns already exist
+
+        conn.commit()
         conn.close()
 
     # --- Run your existing scripts ---
@@ -88,3 +108,8 @@ if __name__ == "__main__":
     # app.add_dislike("Jumanji")
     # print("Matches:", app.get_matches())
     # print("Dislikes:", app.get_dislikes())
+
+    
+    print(app.get_dislike_titles())
+    print(app.get_match_titles())
+    
