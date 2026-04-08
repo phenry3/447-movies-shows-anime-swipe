@@ -25,7 +25,6 @@ class MovieBackend:
             )
         """)
 
-
         """Creates matches and dislikes tables with the same structure as movies with google_id as link to user."""
         conn.execute("CREATE TABLE IF NOT EXISTS matches AS SELECT * FROM movies WHERE 1=0")
         conn.execute("CREATE TABLE IF NOT EXISTS dislikes AS SELECT * FROM movies WHERE 1=0")
@@ -152,11 +151,10 @@ class MovieBackend:
 
     def get_dislike_titles(self, google_id):
         return [d['title'] for d in self.get_dislikes(google_id) if d.get('title')]
-        
     
     # --- Algo Logic ---
-    def get_rec(self):
-        return self.recommender.serving_rec(self.get_match_titles(), self.get_dislike_titles())
+    def get_rec(self, google_id):
+        return self.recommender.serving_rec(self.get_match_titles(google_id), self.get_dislike_titles(google_id))
     
     # --- Dev Funcs ---
     def print_schemas(self):
@@ -188,16 +186,22 @@ if __name__ == "__main__":
     #print(app.get_dislike_titles())
     #print(app.get_match_titles())
 
-    
+    print("-- create user -- ")
     app.create_user("1234567890", "test@gmail.com", True, "John Doe", "https://photo.url")
+    print(app.get_user_profile_info("1234567890"))
+    print()
 
-    print(app.add_dislike("Toy Story", "1234567890")) # added
-    print(app.add_dislike("Jumanji", "1234567890")) # added
-    print(app.add_dislike("Toy Story", "1234567890")) # should not duplicate
-    print(app.add_dislike("Toy Story", "bad_id")) # Error: google_id not found
+    print("-- add match -- ")
+    app.add_match("Toy Story", "1234567890")
+    app.add_match("Jumanji", "1234567890")
+    print(app.get_match_titles("1234567890"))
+    print()
 
-    print(app.get_dislikes("1234567890"))
+    print("-- add dislike -- ")
+    app.add_dislike("Grumpier Old Men", "1234567890")
     print(app.get_dislike_titles("1234567890"))
+    print()
 
-    app.remove_dislike("Toy Story", "1234567890")
-    print(app.get_dislike_titles("1234567890")) # only Jumanji
+    print("-- get rec -- ")
+    print(app.get_rec("1234567890"))
+    print()
