@@ -83,7 +83,10 @@ class MovieBackend:
             conn.close()
             return "Error: google_id not found"
         
-        conn.execute("INSERT INTO matches SELECT *, ? FROM movies WHERE title = ?", (google_id, title))
+        # makes sure doesnt exist
+        conn.execute("INSERT INTO matches SELECT *, ? FROM movies WHERE title = ? AND NOT EXISTS (SELECT 1 FROM matches WHERE title = ? AND google_id = ?)", 
+             (google_id, title, title, google_id))
+        
         conn.commit()
         conn.close()
 
@@ -115,8 +118,8 @@ class MovieBackend:
         return df.to_dict(orient='records')
     
     # [TESTING]
-    def get_match_titles(self):
-        return [m['title'] for m in self.get_matches() if m.get('title')]
+    def get_match_titles(self, google_id):
+        return [m['title'] for m in self.get_matches(google_id) if m.get('title')]
         
 
     # --- Dislike Logic ---
@@ -196,35 +199,11 @@ if __name__ == "__main__":
     # Create user
     print("\n=== CREATE USER ===")
     print(app.create_user("1234567890", "test@gmail.com", True, "John Doe", "https://photo.url"))
-    print(app.create_user("1234567890", "test@gmail.com", True, "John Doe", "https://photo.url"))  # should say already exists
-    app.print_schemas()
-    app.print_all_db_info()
-
-    # Get user
-    print("\n=== GET USER ===")
-    print(app.get_user_profile_info("1234567890"))
 
     # Add matches
     print("\n=== ADD MATCHES ===")
     print(app.add_match("Toy Story", "1234567890"))
     print(app.add_match("Jumanji", "1234567890"))
-    print(app.add_match("Toy Story", "bad_id"))  # should error
-    app.print_all_db_info()
 
-    # Get matches
-    print("\n=== GET MATCHES ===")
-    print(app.get_matches("1234567890"))
-
-    # Remove match
-    print("\n=== REMOVE MATCH ===")
-    app.remove_match("Toy Story", "1234567890")
-    print(app.get_matches("1234567890"))
-
-    # Get matches
-    print("\n=== GET MATCHES ===")
-    print(app.get_matches("1234567890"))
-
-    # Delete user (cascades)
-    print("\n=== DELETE USER ===")
-    app.delete_user("1234567890")
-    app.print_all_db_info()
+    # Print titles
+    print(app.get_match_titles("1234567890"))
