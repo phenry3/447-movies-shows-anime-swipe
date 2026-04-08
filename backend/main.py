@@ -47,26 +47,74 @@ class MovieBackend:
     def run_export(self):
         """Triggers final_db_to_csv.py logic."""
         export_to_algo_csv()
+    
+    # --- User Logic ---
+    def create_user(self, google_id, email, email_verified, name, picture):
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.execute("INSERT OR IGNORE INTO users (google_id, email, email_verified, name, picture) VALUES (?, ?, ?, ?, ?)",
+                            (google_id, email, email_verified, name, picture))
+        conn.commit()
+        conn.close()
+        return "created" if cursor.rowcount else "already exists"
+
+    def delete_user(self, google_id):
+        conn = sqlite3.connect(self.db_path)
+        conn.execute("DELETE FROM matches WHERE google_id = ?", (google_id,))
+        conn.execute("DELETE FROM dislikes WHERE google_id = ?", (google_id,))
+        conn.execute("DELETE FROM users WHERE google_id = ?", (google_id,))
+        conn.commit()
+        conn.close()
+
+    def get_user_profile_info(self, google_id):
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        row = conn.execute("SELECT * FROM users WHERE google_id = ?", (google_id,)).fetchone()
+        conn.close()
+        return dict(row) if row else None
 
     # --- Matches Logic ---
-    def add_match(self, title):
+    def add_match(self, title, google_id):
+        # 1. check if google_id exists
+        # 2. add based on user_id
+
         conn = sqlite3.connect(self.db_path)
-        conn.execute("INSERT INTO matches SELECT * FROM movies WHERE title = ?", (title,))
+        user = conn.execute("SELECT 1 FROM users WHERE google_id = ?", (google_id,)).fetchone()
+        if not user:
+            conn.close()
+            return "Error: google_id not found"
+        
+        conn.execute("INSERT INTO matches SELECT *, ? FROM movies WHERE title = ?", (google_id, title))
         conn.commit()
         conn.close()
 
-    def remove_match(self, title):
+        return "success"
+
+    def remove_match(self, title, google_id):
+        # 1. check if google_id exists
+        # 2. remove based on user_id match
         conn = sqlite3.connect(self.db_path)
-        conn.execute("DELETE FROM matches WHERE title = ?", (title,))
+        user = conn.execute("SELECT 1 FROM users WHERE google_id = ?", (google_id,)).fetchone()
+        if not user:
+            conn.close()
+            return "Error: google_id not found"
+        
+        conn.execute("DELETE FROM matches WHERE title = ? AND google_id = ?", (title, google_id))
         conn.commit()
         conn.close()
 
-    def get_matches(self):
+    def get_matches(self, google_id):
+        # 1. check if google_id exists
+        # 2. serve based on user_id match    
         conn = sqlite3.connect(self.db_path)
-        df = pd.read_sql_query("SELECT * FROM matches", conn)
+        user = conn.execute("SELECT 1 FROM users WHERE google_id = ?", (google_id,)).fetchone()
+        if not user:
+            conn.close()
+            return "Error: google_id not found"
+        df = pd.read_sql_query("SELECT * FROM matches WHERE google_id = ?", conn, params=(google_id,))
         conn.close()
         return df.to_dict(orient='records')
     
+    # [TESTING]
     def get_match_titles(self):
         return [m['title'] for m in self.get_matches() if m.get('title')]
         
@@ -96,31 +144,6 @@ class MovieBackend:
     def get_dislike_titles(self):
         return [d['title'] for d in self.get_dislikes() if d.get('title')]
     
-    # --- User Logic ---
-    def create_user(self, google_id, email, email_verified, name, picture):
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.execute("INSERT OR IGNORE INTO users (google_id, email, email_verified, name, picture) VALUES (?, ?, ?, ?, ?)",
-                            (google_id, email, email_verified, name, picture))
-        conn.commit()
-        conn.close()
-        return "created" if cursor.rowcount else "already exists"
-
-    def delete_user(self, google_id):
-        conn = sqlite3.connect(self.db_path)
-        conn.execute("DELETE FROM matches WHERE google_id = ?", (google_id,))
-        conn.execute("DELETE FROM dislikes WHERE google_id = ?", (google_id,))
-        conn.execute("DELETE FROM users WHERE google_id = ?", (google_id,))
-        conn.commit()
-        conn.close()
-
-    def get_user_profile_info(self, google_id):
-        conn = sqlite3.connect(self.db_path)
-        conn.row_factory = sqlite3.Row
-        row = conn.execute("SELECT * FROM users WHERE google_id = ?", (google_id,)).fetchone()
-        conn.close()
-        return dict(row) if row else None
-
-
     
     # --- Algo Logic ---
     def get_rec(self):
@@ -157,9 +180,51 @@ if __name__ == "__main__":
     #print(app.get_match_titles())
 
     
-    app.create_user("1234567890", "test@gmail.com", True, "John Doe", "https://photo.url")
+    # app.create_user("1234567890", "test@gmail.com", True, "John Doe", "https://photo.url")
+    # print(app.get_user_profile_info("1234567890"))
+
+    # app.delete_user("1234567890")
+    # app.print_all_db_info()
+
+if __name__ == "__main__":
+    app = MovieBackend()
+
+    # Print initial state
+    print("=== INITIAL DB ===")
+    app.print_all_db_info()
+
+    # Create user
+    print("\n=== CREATE USER ===")
+    print(app.create_user("1234567890", "test@gmail.com", True, "John Doe", "https://photo.url"))
+    print(app.create_user("1234567890", "test@gmail.com", True, "John Doe", "https://photo.url"))  # should say already exists
+    app.print_schemas()
+    app.print_all_db_info()
+
+    # Get user
+    print("\n=== GET USER ===")
     print(app.get_user_profile_info("1234567890"))
 
+    # Add matches
+    print("\n=== ADD MATCHES ===")
+    print(app.add_match("Toy Story", "1234567890"))
+    print(app.add_match("Jumanji", "1234567890"))
+    print(app.add_match("Toy Story", "bad_id"))  # should error
+    app.print_all_db_info()
+
+    # Get matches
+    print("\n=== GET MATCHES ===")
+    print(app.get_matches("1234567890"))
+
+    # Remove match
+    print("\n=== REMOVE MATCH ===")
+    app.remove_match("Toy Story", "1234567890")
+    print(app.get_matches("1234567890"))
+
+    # Get matches
+    print("\n=== GET MATCHES ===")
+    print(app.get_matches("1234567890"))
+
+    # Delete user (cascades)
+    print("\n=== DELETE USER ===")
     app.delete_user("1234567890")
     app.print_all_db_info()
-    
