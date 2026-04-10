@@ -33,8 +33,16 @@ class MediaItem(BaseModel):
 
 
 class FeedbackIn(BaseModel):
+    google_id: str
     title: str
     action: Literal["like", "dislike"]
+
+class UserIn(BaseModel):
+    google_id: str
+    email: str
+    email_verified: bool
+    name: str = ""
+    picture: str = ""
 
 
 #--------Helpers---------
@@ -97,8 +105,8 @@ def to_api_shape(row: dict) -> MediaItem:
     )
 
 
-def one_recommendation() -> MediaItem:
-    rec_title = backend.get_rec()  # confirmed: returns a string title
+def one_recommendation(google_id : str) -> MediaItem:
+    rec_title = backend.get_rec(google_id)  # confirmed: returns a string title
     if not isinstance(rec_title, str) or not rec_title.strip():
         raise HTTPException(status_code=404, detail="No recommendation available")
 
@@ -108,28 +116,51 @@ def one_recommendation() -> MediaItem:
 
 # Endpoints
 
-@api.get("/api/rec", response_model=MediaItem)
-def get_rec() :
-    return one_recommendation()
+@api.post("/api/users")
+def create_user(user: UserIn):
+    result = backend.create_user(
+        user.google_id,
+        user.email,
+        user.email_verified,
+        user.name,
+        user.picture,
+    )
+    return {"status": result}
+
+@api.get("/api/rec/{google_id}", response_model=MediaItem)
+def get_rec(google_id: str) :
+    return one_recommendation(google_id)
 
 @api.post("/api/feedback", response_model=MediaItem)
 def feedback(payload: FeedbackIn):
     title = payload.title.strip()
+    google_id = payload.google_id.strip()
+
     if not title:
         raise HTTPException(status_code=400, detail="title is required")
     
-    if payload.action == "like":
-        backend.add_match(title)
-    else:
-        backend.add_dislike(title)
+    if not google_id:
+        raise HTTPException(status_code=400, detail="google_id is required")
+
     
-    return one_recommendation()
+    if payload.action == "like":
+       result = backend.add_match(title, google_id)
+    else:
+       result = backend.add_dislike(title, google_id)
+    
+    if isinstance(result, str) and result.startswith("Error"):
+        raise HTTPException(status_code=400, detail=result)
+    return one_recommendation(google_id)
 
 
 # To be used by the matches page
-@api.get("/api/matches", response_model=List[MediaItem])
-def matches():
-    rows = backend.get_matches()
+@api.get("/api/matches/{google_id}", response_model=List[MediaItem])
+def matches(google_id: str):
+    rows = backend.get_matches(google_id)
+
+    if isinstance(rows, str) and rows.startswith("Error"):
+        raise HTTPException(status_code=400, detail=rows)
+    
     return [to_api_shape(r) for r in rows]
 
 @api.get("/api/stats")

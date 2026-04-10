@@ -5,17 +5,19 @@ import { DetailsCard } from "@/components/DetailsCard";
 import { MediaCard } from "@/components/MediaCard";
 import { getMatches } from "@/lib/api";
 import { MediaItem } from "@/lib/types/media";
+import { useSession } from "next-auth/react";
 
 export default function MatchesPage() {
+  const { data: session, status } = useSession();
   const [matches, setMatches] = useState<MediaItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedMatch, setSelectedMatch] = useState<MediaItem | null>(null);
   const detailsTitleId = useId();
 
-  async function loadMatches() {
+  async function loadMatches(googleId: string) {
     setLoading(true);
     try {
-      const data = await getMatches();
+      const data = await getMatches(googleId);
       setMatches(data);
     } catch (err) {
       console.error("Failed to load matches:", err);
@@ -25,31 +27,17 @@ export default function MatchesPage() {
   }
 
   useEffect(() => {
-    loadMatches();
-  }, []);
-
-  useEffect(() => {
-    if (!selectedMatch) {
+    if (status === "authenticated" && session?.user?.googleId) {
+      loadMatches(session.user.googleId);
       return;
     }
 
-    const originalOverflow = document.body.style.overflow;
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setSelectedMatch(null);
-      }
-    };
+    if (status === "unauthenticated") {
+      setLoading(false);
+    }
+  }, [status, session?.user?.googleId]);
 
-    document.body.style.overflow = "hidden";
-    window.addEventListener("keydown", handleKeyDown);
-
-    return () => {
-      document.body.style.overflow = originalOverflow;
-      window.removeEventListener("keydown", handleKeyDown);
-    };
-  }, [selectedMatch]);
-
-  if (loading) return <div className="min-h-screen p-6 text-white">Loading...</div>;
+  if (status === "loading" || loading) return <div className="min-h-screen p-6 text-white">Loading...</div>;
   if (matches.length === 0) return <div className="min-h-screen p-6 text-white">No matches yet.</div>;
 
   return (
