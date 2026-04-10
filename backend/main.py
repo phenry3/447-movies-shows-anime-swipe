@@ -126,6 +126,23 @@ class MovieBackend:
         
         # Returns: {"Animation": 5, "Comedy": 3, ...}
         return genre_counts
+    
+    def get_movie(self, title):
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        row = conn.execute("SELECT * FROM movies WHERE title = ?", (title,)).fetchone()
+        conn.close()
+        return dict(row) if row else None
+    
+    def search_titles(self, query, limit=10):
+        conn = sqlite3.connect(self.db_path)
+        results = conn.execute(
+            "SELECT title FROM movies WHERE title LIKE ? ORDER BY title LIMIT ?",
+            (f"{query}%", limit)
+        ).fetchall()
+        conn.close()
+
+        return [r[0] for r in results]  # return ONLY titles
 
 if __name__ == "__main__":
     app = MovieBackend()

@@ -23,3 +23,15 @@ export async function getMatches() : Promise<MediaItem[]>{
     if(!res.ok) throw new Error(`get Matches failed: ${res.status}`);
     return res.json();
 }
+
+export async function searchMovies(query: string) {
+  const res = await fetch(
+    `http://127.0.0.1:8000/api/search?query=${encodeURIComponent(query)}&limit=10`
+  );
+
+  if (!res.ok) {
+    throw new Error("Failed to search movies");
+  }
+
+  return res.json();
+}
