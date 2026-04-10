@@ -32,7 +32,7 @@ export default function MatchesPage() {
     <main className="min-h-screen bg-black text-white p-6">
       <h1 className="text-2xl font-bold mb-6">Your Matches</h1>
       <div className="grid gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-        {matches.map((item) => (
+        {matches.slice().reverse().map((item) => (
           <MediaCard key={item.title} item={item} />
         ))}
       </div>

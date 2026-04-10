@@ -1,5 +1,6 @@
 # --- Backend / Python ---
-backend/447app/            
+backend/447app/ 
+backend/filmflicks/           
 backend/.env                
 **/__pycache__/             
 backend/*.py[cod]           
