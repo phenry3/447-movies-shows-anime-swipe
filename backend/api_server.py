@@ -131,4 +131,14 @@ def feedback(payload: FeedbackIn):
 def matches():
     rows = backend.get_matches()
     return [to_api_shape(r) for r in rows]
+
+@api.get("/api/stats")
+def get_counts():
+    """Returns { "liked": 12, "disliked": 4 }"""
+    return backend.get_stats()
+
+@api.get("/api/stats/genres")
+def get_genre_pie_data():
+    """Returns { "GenreName": Count } for all liked items."""
+    return backend.get_genre_stats()
     
