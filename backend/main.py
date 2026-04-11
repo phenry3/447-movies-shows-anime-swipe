@@ -1,8 +1,14 @@
+import os
 import sqlite3
+import requests
 import pandas as pd
 from final_csv_to_db import initDatabase
 from final_db_to_csv import export_to_algo_csv
 from rec_algo import MovieRecommender
+
+TMDB_API_KEY = os.getenv("TMDB_API_KEY")
+TMDB_BASE = "https://api.themoviedb.org/3"
+TMDB_IMG = "https://image.tmdb.org/t/p/w500"
 
 class MovieBackend:
     def __init__(self, db_path='movies.db'):
@@ -156,6 +162,70 @@ class MovieBackend:
     def get_rec(self, google_id):
         return self.recommender.serving_rec(self.get_match_titles(google_id), self.get_dislike_titles(google_id))
     
+    # --- Thumbnail Logic ---
+    def get_thumbnail(self, title):
+        conn = sqlite3.connect(self.db_path)
+
+        df = pd.read_sql_query(
+            "SELECT content_type FROM movies WHERE title = ? LIMIT 1",
+            conn,
+            params=(title,)
+        )
+
+        conn.close()
+
+        if df.empty:
+            return None
+
+        media = df.iloc[0]["content_type"]
+
+        try:
+            if media == "movie":
+                r = requests.get(
+                    f"{TMDB_BASE}/search/movie",
+                    params={"api_key": TMDB_API_KEY, "query": title},
+                    timeout=5
+                )
+                data = r.json()
+
+                if data.get("results"):
+                    poster = data["results"][0].get("poster_path")
+                    if poster:
+                        return f"{TMDB_IMG}{poster}"
+
+            elif media == "tv":
+                r = requests.get(
+                    f"{TMDB_BASE}/search/tv",
+                    params={"api_key": TMDB_API_KEY, "query": title},
+                    timeout=5
+                )
+                data = r.json()
+
+                if data.get("results"):
+                    poster = data["results"][0].get("poster_path")
+                    if poster:
+                        return f"{TMDB_IMG}{poster}"
+
+            elif media == "anime":
+                r = requests.get(
+                    "https://api.jikan.moe/v4/anime",
+                    params={"q": title, "limit": 1},
+                    timeout=5
+                )
+                data = r.json()
+
+                if data.get("data"):
+                    images = data["data"][0].get("images", {})
+                    jpg = images.get("jpg", {})
+                    image_url = jpg.get("image_url")
+                    if image_url:
+                        return image_url
+
+        except:
+            return None
+
+        return None
+        
     # --- Dev Funcs ---
     def print_schemas(self):
         conn = sqlite3.connect(self.db_path)
