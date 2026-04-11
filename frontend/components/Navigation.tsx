@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Heart, Compass, Film } from "lucide-react";
+import { Heart, Compass, Film, BarChart, Search} from "lucide-react";
 
 {/**Helper function that takes inputs and gives one string that can be put into className */}
 function cx(...classes: Array<string | false | undefined>) {
@@ -14,6 +14,8 @@ export default function Navigation() {
 
   const isDiscovery = pathname === "/discovery";
   const isLiked = pathname === "/matches";
+  const isStats = pathname === "/stats";
+  const isSearch = pathname === "/search";
 
   const baseLink = "group flex items-center gap-2 rounded-full px-4 py-2 text-sm transition-colors";
 
@@ -50,6 +52,22 @@ export default function Navigation() {
           >
             <Heart className={iconClass} />
             <span className={textClass}>Liked</span>
+          </Link>
+
+          <Link
+            href="/stats"
+            className={cx(baseLink, isStats ? activeLink : inactiveLink)}
+          >
+            <BarChart className={iconClass} />
+            <span className={textClass}>Stats</span>
+          </Link>
+
+          <Link
+            href="/search"
+            className={cx(baseLink, isSearch ? activeLink : inactiveLink)}
+          >
+            <Search className={iconClass} />
+            <span className={textClass}>Search</span>
           </Link>
         </nav>
       </div>
