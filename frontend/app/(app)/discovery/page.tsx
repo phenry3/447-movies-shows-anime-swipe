@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { MediaCard } from "@/components/MediaCard";
+import { DetailsCard } from "@/components/DetailsCard";
 import { Heart, X } from "lucide-react";
 import { getRec, sendFeedback } from "@/lib/api";
 import { MediaItem } from "@/lib/types/media";
