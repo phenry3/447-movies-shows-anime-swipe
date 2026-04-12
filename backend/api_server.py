@@ -171,5 +171,5 @@ def get_counts():
 @api.get("/api/stats/genres")
 def get_genre_pie_data():
     """Returns { "GenreName": Count } for all liked items."""
-    return backend.get_genre_stats()
+    return backend.get_genre_stats(google_id)
     

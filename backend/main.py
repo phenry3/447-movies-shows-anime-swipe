@@ -257,11 +257,11 @@ class MovieBackend:
         conn.close()
         return {"liked": liked_count, "disliked": disliked_count}
 
-    def get_genre_stats(self):
+    def get_genre_stats(self, google_id): 
         """Aggregates genre counts from liked content for the pie chart."""
         conn = sqlite3.connect(self.db_path)
         # We use pandas here because it handles the row-looping efficiently
-        df = pd.read_sql_query("SELECT genres FROM matches", conn)
+        df = pd.read_sql_query("SELECT genres FROM matches WHERE google_id = ?", conn, params=(google_id,))  # 2. filter by user
         conn.close()
 
         genre_counts = {}
