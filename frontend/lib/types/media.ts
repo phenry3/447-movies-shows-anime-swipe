@@ -10,6 +10,7 @@ export type MediaItem = {
 
 
 export type FeedbackPaylaod ={
+    google_id : string;
     title : string;
     action : "like" | "dislike";
 };

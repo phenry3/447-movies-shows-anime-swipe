@@ -54,3 +54,14 @@ The datasets used in this pipeline were obtained from public Kaggle datasets:
 - TMDB Movies Metadata (includes `movies_metadata.csv` and `keywords.csv`)
 - TMDB TV Dataset (`TMDB_tv_dataset_v3.csv`)
 - MyAnimeList Dataset (`AnimeList.csv`)
+
+commands to open run app, must be done in two different shells
+
+in one shell:
+cd ~/repos/447-movies-shows-anime-swipe/backend
+source 447app/bin/activate
+uvicorn api_server:api --reload
+
+in a different shell:
+cd ~/repos/447-movies-shows-anime-swipe/frontend
+npm run dev

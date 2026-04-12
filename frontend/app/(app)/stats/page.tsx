@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { StatsCard } from "@/components/StatsCard";
 import { Pie } from "react-chartjs-2";
+import { useSession } from "next-auth/react";  // phil change for stats to work
 import {
   Chart as ChartJS,
   ArcElement,
@@ -24,11 +25,21 @@ interface GenreStats {
 }
 
 export default function StatsPage() {
+  const { data: session, status } = useSession();  // phill added for status to work
   const [stats, setStats] = useState<Stats | null>(null);
   const [genres, setGenres] = useState<GenreStats>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+
+    // needed to add user authentication check, phil added
+    if (status !== "authenticated" || !session?.user?.googleId) {
+      if (status === "unauthenticated") setLoading(false);
+      return;
+    }
+
+    const googleId = session.user.googleId;  // phil change 412
+
     async function fetchStats() {
       try {
         const resStats = await fetch(
@@ -37,20 +48,24 @@ export default function StatsPage() {
         );
         if (!resStats.ok)
           throw new Error(`Failed to fetch stats: ${resStats.status}`);
+
         const dataStats = await resStats.json();
         setStats(dataStats);
 
         const resGenres = await fetch(
-          `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/stats/genres`,
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/stats/genres/${googleId}`,
           { cache: "no-store" }
         );
         if (!resGenres.ok)
           throw new Error(`Failed to fetch genres: ${resGenres.status}`);
+
         const dataGenres: GenreStats = await resGenres.json();
 
+        //only does top 5
         const sorted = Object.entries(dataGenres)
           .sort(([, a], [, b]) => b - a)
-          .slice(0, 5); //change the 5 for more or less genres
+          .slice(0, 5);
+
         setGenres(Object.fromEntries(sorted));
       } catch (err) {
         console.error(err);
@@ -60,17 +75,39 @@ export default function StatsPage() {
     }
 
     fetchStats();
-  }, []);
+  }, [status, session?.user?.googleId]); // user id dependency
 
-  if (loading) return <p className="p-6 text-white">Loading stats...</p>;
-  if (!stats) return <p className="p-6 text-red-500">Failed to load stats</p>;
+  if (loading)
+    return <p className="p-6 text-white">Loading stats...</p>;
+
+  if (!stats)
+    return <p className="p-6 text-red-500">Failed to load stats</p>;
+
+
+  const safeGenres: Record<string, number> = { ...genres };
+
+  const keys = Object.keys(safeGenres);
+  const values = Object.values(safeGenres);
+
+  if (keys.length === 1) {
+    safeGenres["Other"] = Math.max(1, Math.floor(values[0] * 0.5));
+  }
+
+  const labels = Object.keys(safeGenres);
+  const dataValues = Object.values(safeGenres);
 
   const data: ChartData<"pie", number[], string> = {
-    labels: Object.keys(genres),
+    labels,
     datasets: [
       {
-        data: Object.values(genres),
-        backgroundColor: ["#10B981", "#F59E0B", "#EF4444", "#3B82F6", "#8B5CF6"],
+        data: dataValues,
+        backgroundColor: [
+          "#10B981",
+          "#F59E0B",
+          "#EF4444",
+          "#3B82F6",
+          "#8B5CF6",
+        ],
       },
     ],
   };
@@ -79,27 +116,31 @@ export default function StatsPage() {
     {
       id: "sliceLabels",
       afterDraw: (chart: any) => {
-        const { ctx, chartArea: { width, height }, data } = chart;
-        ctx.save();
-        const radius = chart._metasets[0].data[0].outerRadius;
-        const centerX = width / 2;
-        const centerY = height / 2;
+        const meta = chart.getDatasetMeta(0);
+        const labels = chart.data.labels;
 
-        chart._metasets[0].data.forEach((arc: any, index: number) => {
+        if (!meta?.data || !labels) return;
+
+        const ctx = chart.ctx;
+
+        meta.data.forEach((arc: any, index: number) => {
+          const label = labels[index];
+          if (!label) return;
+
           const midAngle = (arc.startAngle + arc.endAngle) / 2;
-          const x = centerX + (radius / 2) * Math.cos(midAngle);
-          const y = centerY + (radius / 2) * Math.sin(midAngle);
 
-          const label = data.labels?.[index];
-          if (typeof label === "string") {
-            ctx.fillStyle = "#fff";
-            ctx.font = "bold 14px sans-serif";
-            ctx.textAlign = "center";
-            ctx.textBaseline = "middle";
-            ctx.fillText(label, x, y);
-          }
+          const radius = arc.outerRadius * 0.65;
+          const x = arc.x + radius * Math.cos(midAngle);
+          const y = arc.y + radius * Math.sin(midAngle);
+
+          ctx.save();
+          ctx.fillStyle = "#fff";
+          ctx.font = "bold 13px sans-serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(String(label), x, y);
+          ctx.restore();
         });
-        ctx.restore();
       },
     },
   ];
@@ -113,19 +154,30 @@ export default function StatsPage() {
 
   return (
     <main className="min-h-screen bg-black p-6 text-white">
-      <h1 className="text-2xl font-bold mb-6">Your Stats</h1>
+      <h1 className="mb-6 text-2xl font-bold">Your Stats</h1>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
-        <StatsCard label="Liked Movies" count={stats.liked} color="bg-green-600" />
-        <StatsCard label="Disliked Movies" count={stats.disliked} color="bg-red-600" />
+      <div className="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2">
+        <StatsCard
+          label="Liked Movies"
+          count={stats.liked}
+          color="bg-green-600"
+        />
+        <StatsCard
+          label="Disliked Movies"
+          count={stats.disliked}
+          color="bg-red-600"
+        />
       </div>
 
       {/* Pie Chart */}
-      {Object.keys(genres).length > 0 && (
-        <div className="max-w-md mx-auto">
+      {labels.length > 0 && (
+        <div className="mx-auto max-w-md">
           <Pie data={data} options={options} plugins={plugins} />
-          <p className="text-center text-white mt-4 font-semibold">Your Top 5 Genres</p>
+
+          <p className="mt-4 text-center font-semibold text-white">
+            Your Top Genres
+          </p>
         </div>
       )}
     </main>

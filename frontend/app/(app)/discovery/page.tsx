@@ -2,37 +2,44 @@
 
 import { useEffect, useState } from "react";
 import { MediaCard } from "@/components/MediaCard";
-import { Heart,X } from "lucide-react";
-import { getRec,sendFeedback} from "@/lib/api";
+import { DetailsCard } from "@/components/DetailsCard";
+import { Heart, X } from "lucide-react";
+import { getRec, sendFeedback } from "@/lib/api";
 import { MediaItem } from "@/lib/types/media";
+import {useSession} from "next-auth/react";
 
 export default function DiscoveryPage() {
+  const { data: session, status } = useSession();
   const [item, setItem] = useState<MediaItem | null>(null);
   const [loading, setLoading] = useState(true);
 
   
   async function loadRec(){
+
+    if (!session?.user?.googleId) return;
     setLoading(true);
     try {
-      const rec = await getRec();
+      const rec = await getRec(session.user.googleId);
       setItem(rec);
     }
-    finally{
+    finally {
       setLoading(false);
     }
   }
 
-  useEffect(() => {loadRec();}, []);
+  useEffect(() => {if (status === "authenticated" && session?.user?.googleId) {
+      loadRec();
+    }}, [status, session?.user?.googleId]);
 
   async function dislike() {
-    if (!item) return;
-    const next = await sendFeedback({title: item.title, action: "dislike"});
+    if (!item || !session?.user?.googleId) return;
+    const next = await sendFeedback({google_id: session.user.googleId, title: item.title, action: "dislike"});
     setItem(next);
   }
 
   async function like() {
-    if (!item) return;
-    const next = await sendFeedback({title: item.title, action: "like"});
+    if (!item || !session?.user?.googleId) return;
+    const next = await sendFeedback({google_id: session.user.googleId, title: item.title, action: "like"});
     setItem(next);
   }
 
@@ -60,7 +67,7 @@ export default function DiscoveryPage() {
             className="grid h-15 w-15 place-items-center rounded-full bg-red-600/90 text-3xl shadow-lg ring-1 ring-white/10"
             aria-label="Dislike"
           >
-            <X className={iconClass}/>
+            <X className={iconClass} />
           </button>
 
           <button
@@ -68,8 +75,12 @@ export default function DiscoveryPage() {
             className="grid h-15 w-15 place-items-center rounded-full bg-green-600/90 text-3xl shadow-lg ring-1 ring-white/10"
             aria-label="Like"
           >
-            <Heart className={iconClass}/>
+            <Heart className={iconClass} />
           </button>
+        </div>
+
+        <div className="mt-6 w-full mb-6">
+          <DetailsCard item={item} />
         </div>
       </section>
     </main>

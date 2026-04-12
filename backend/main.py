@@ -1,8 +1,14 @@
+import os
 import sqlite3
+import requests
 import pandas as pd
 from final_csv_to_db import initDatabase
 from final_db_to_csv import export_to_algo_csv
 from rec_algo import MovieRecommender
+
+TMDB_API_KEY = os.getenv("TMDB_API_KEY")
+TMDB_BASE = "https://api.themoviedb.org/3"
+TMDB_IMG = "https://image.tmdb.org/t/p/w500"
 
 class MovieBackend:
     def __init__(self, db_path='movies.db'):
@@ -11,12 +17,31 @@ class MovieBackend:
         self.recommender = MovieRecommender() 
 
     def _create_tables(self):
-        """Creates matches and dislikes tables with the same structure as movies."""
         conn = sqlite3.connect(self.db_path)
-        # Create Matches table
+              
+        # Create users
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                google_id TEXT PRIMARY KEY,
+                email TEXT UNIQUE NOT NULL,
+                email_verified BOOLEAN,
+                name TEXT,
+                picture TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
+        """Creates matches and dislikes tables with the same structure as movies with google_id as link to user."""
         conn.execute("CREATE TABLE IF NOT EXISTS matches AS SELECT * FROM movies WHERE 1=0")
-        # Create Dislikes table
         conn.execute("CREATE TABLE IF NOT EXISTS dislikes AS SELECT * FROM movies WHERE 1=0")
+
+        try:
+            conn.execute("ALTER TABLE matches ADD COLUMN google_id TEXT REFERENCES users(google_id)")
+            conn.execute("ALTER TABLE dislikes ADD COLUMN google_id TEXT REFERENCES users(google_id)")
+        except:
+            pass  # columns already exist
+
+        conn.commit()
         conn.close()
 
     # --- Run your existing scripts ---
@@ -27,74 +52,196 @@ class MovieBackend:
     def run_export(self):
         """Triggers final_db_to_csv.py logic."""
         export_to_algo_csv()
+    
+    # --- User Logic ---
+    def create_user(self, google_id, email, email_verified, name, picture):
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.execute("INSERT OR IGNORE INTO users (google_id, email, email_verified, name, picture) VALUES (?, ?, ?, ?, ?)",
+                            (google_id, email, email_verified, name, picture))
+        conn.commit()
+        conn.close()
+        return "created" if cursor.rowcount else "already exists"
+
+    def delete_user(self, google_id):
+        conn = sqlite3.connect(self.db_path)
+        conn.execute("DELETE FROM matches WHERE google_id = ?", (google_id,))
+        conn.execute("DELETE FROM dislikes WHERE google_id = ?", (google_id,))
+        conn.execute("DELETE FROM users WHERE google_id = ?", (google_id,))
+        conn.commit()
+        conn.close()
+
+    def get_user_profile_info(self, google_id):
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        row = conn.execute("SELECT * FROM users WHERE google_id = ?", (google_id,)).fetchone()
+        conn.close()
+        return dict(row) if row else None
 
     # --- Matches Logic ---
-    def add_match(self, title):
-        """
-            this needs to be modifiable by the front end via API call
-        """
-        conn = sqlite3.connect(self.db_path)
-        conn.execute("INSERT INTO matches SELECT * FROM movies WHERE title = ?", (title,))
-        conn.commit()
-        conn.close()
+    def add_match(self, title, google_id):
+        # 1. check if google_id exists
+        # 2. add based on user_id
 
-    def remove_match(self, title):
-        """
-            this needs to be modifiable by the front end via API call
-        """
         conn = sqlite3.connect(self.db_path)
-        conn.execute("DELETE FROM matches WHERE title = ?", (title,))
-        conn.commit()
-        conn.close()
-
-    def get_matches(self):
-        """
-            this needs to be modifiable by the front end via API call
-        """
-        conn = sqlite3.connect(self.db_path)
-        df = pd.read_sql_query("SELECT * FROM matches", conn)
-        conn.close()
-        return df.to_dict(orient='records')
-    
-    def get_match_titles(self):
-        """
-            this needs to be modifiable by the front end via API call
-        """
-        return [m['title'] for m in self.get_matches() if m.get('title')]
+        user = conn.execute("SELECT 1 FROM users WHERE google_id = ?", (google_id,)).fetchone()
+        if not user:
+            conn.close()
+            return "Error: google_id not found"
         
-
-    # --- Dislike Logic ---
-    def add_dislike(self, title):
-        """Moves movie from 'movies' to 'dislikes' table."""
-        conn = sqlite3.connect(self.db_path)
-        conn.execute("INSERT INTO dislikes SELECT * FROM movies WHERE title = ?", (title,))
+        # makes sure doesnt exist
+        conn.execute("INSERT INTO matches SELECT *, ? FROM movies WHERE title = ? AND NOT EXISTS (SELECT 1 FROM matches WHERE title = ? AND google_id = ?)", 
+             (google_id, title, title, google_id))
+        
         conn.commit()
         conn.close()
 
-    def remove_dislike(self, title):
-        """Removes movie from 'dislikes' table."""
+    def remove_match(self, title, google_id):
+        # 1. check if google_id exists
+        # 2. remove based on user_id match
         conn = sqlite3.connect(self.db_path)
-        conn.execute("DELETE FROM dislikes WHERE title = ?", (title,))
+        user = conn.execute("SELECT 1 FROM users WHERE google_id = ?", (google_id,)).fetchone()
+        if not user:
+            conn.close()
+            return "Error: google_id not found"
+        
+        conn.execute("DELETE FROM matches WHERE title = ? AND google_id = ?", (title, google_id))
         conn.commit()
         conn.close()
 
-    def get_dislikes(self):
-        """Returns all disliked movies as a list of dictionaries."""
+    def get_matches(self, google_id):
+        # 1. check if google_id exists
+        # 2. serve based on user_id match    
         conn = sqlite3.connect(self.db_path)
-        df = pd.read_sql_query("SELECT * FROM dislikes", conn)
+        user = conn.execute("SELECT 1 FROM users WHERE google_id = ?", (google_id,)).fetchone()
+        if not user:
+            conn.close()
+            return "Error: google_id not found"
+        df = pd.read_sql_query("SELECT * FROM matches WHERE google_id = ? ORDER BY rowid DESC", conn, params=(google_id,))  # added ORDER BY rowid DESC
         conn.close()
         return df.to_dict(orient='records')
     
-    def get_dislike_titles(self):
-        return [d['title'] for d in self.get_dislikes() if d.get('title')]
+    def get_match_titles(self, google_id):
+        return [m['title'] for m in self.get_matches(google_id) if m.get('title')]
+        
+    # --- Dislike Logic ---    
+    def add_dislike(self, title, google_id):
+        conn = sqlite3.connect(self.db_path)
+        user = conn.execute("SELECT 1 FROM users WHERE google_id = ?", (google_id,)).fetchone()
+        if not user:
+            conn.close()
+            return "Error: google_id not found"
+        conn.execute("INSERT INTO dislikes SELECT *, ? FROM movies WHERE title = ? AND NOT EXISTS (SELECT 1 FROM dislikes WHERE title = ? AND google_id = ?)",
+                    (google_id, title, title, google_id))
+        conn.commit()
+        conn.close()
+
+    def remove_dislike(self, title, google_id):
+        conn = sqlite3.connect(self.db_path)
+        user = conn.execute("SELECT 1 FROM users WHERE google_id = ?", (google_id,)).fetchone()
+        if not user:
+            conn.close()
+            return "Error: google_id not found"
+        conn.execute("DELETE FROM dislikes WHERE title = ? AND google_id = ?", (title, google_id))
+        conn.commit()
+        conn.close()
+
+    def get_dislikes(self, google_id):
+        conn = sqlite3.connect(self.db_path)
+        user = conn.execute("SELECT 1 FROM users WHERE google_id = ?", (google_id,)).fetchone()
+        if not user:
+            conn.close()
+            return "Error: google_id not found"
+        df = pd.read_sql_query("SELECT * FROM dislikes WHERE google_id = ?", conn, params=(google_id,))
+        conn.close()
+        return df.to_dict(orient='records')
+
+    def get_dislike_titles(self, google_id):
+        return [d['title'] for d in self.get_dislikes(google_id) if d.get('title')]
     
     # --- Algo Logic ---
-    """
-        this needs to be an API call!!!
-        We need to add a put to modify the like in the database
-    """
-    def get_rec(self):
-        return self.recommender.serving_rec(self.get_match_titles(), self.get_dislike_titles())
+    def get_rec(self, google_id):
+        return self.recommender.serving_rec(self.get_match_titles(google_id), self.get_dislike_titles(google_id))
+    
+    # --- Thumbnail Logic ---
+    def get_thumbnail(self, title):
+        conn = sqlite3.connect(self.db_path)
+
+        df = pd.read_sql_query(
+            "SELECT content_type FROM movies WHERE title = ? LIMIT 1",
+            conn,
+            params=(title,)
+        )
+
+        conn.close()
+
+        if df.empty:
+            return None
+
+        media = df.iloc[0]["content_type"]
+
+        try:
+            if media == "movie":
+                r = requests.get(
+                    f"{TMDB_BASE}/search/movie",
+                    params={"api_key": TMDB_API_KEY, "query": title},
+                    timeout=5
+                )
+                data = r.json()
+
+                if data.get("results"):
+                    poster = data["results"][0].get("poster_path")
+                    if poster:
+                        return f"{TMDB_IMG}{poster}"
+
+            elif media == "tv":
+                r = requests.get(
+                    f"{TMDB_BASE}/search/tv",
+                    params={"api_key": TMDB_API_KEY, "query": title},
+                    timeout=5
+                )
+                data = r.json()
+
+                if data.get("results"):
+                    poster = data["results"][0].get("poster_path")
+                    if poster:
+                        return f"{TMDB_IMG}{poster}"
+
+            elif media == "anime":
+                r = requests.get(
+                    "https://api.jikan.moe/v4/anime",
+                    params={"q": title, "limit": 1},
+                    timeout=5
+                )
+                data = r.json()
+
+                if data.get("data"):
+                    images = data["data"][0].get("images", {})
+                    jpg = images.get("jpg", {})
+                    image_url = jpg.get("image_url")
+                    if image_url:
+                        return image_url
+
+        except:
+            return None
+
+        return None
+        
+    # --- Dev Funcs ---
+    def print_schemas(self):
+        conn = sqlite3.connect(self.db_path)
+        for table in ['users', 'movies', 'matches', 'dislikes']:
+            print(f"\n--- {table} ---")
+            for row in conn.execute(f"PRAGMA table_info({table})"):
+                print(f"  {row[1]} ({row[2]})")
+        conn.close()
+
+    def print_all_db_info(self):
+        conn = sqlite3.connect(self.db_path)
+        for table in ['users', 'movies', 'matches', 'dislikes']:
+            print(f"\n--- {table} ---")
+            df = pd.read_sql_query(f"SELECT * FROM {table}", conn)
+            print(df)
+        conn.close()
 
     def get_stats(self):
         """Returns the total counts for matches and dislikes."""
@@ -110,11 +257,11 @@ class MovieBackend:
         conn.close()
         return {"liked": liked_count, "disliked": disliked_count}
 
-    def get_genre_stats(self):
+    def get_genre_stats(self, google_id): 
         """Aggregates genre counts from liked content for the pie chart."""
         conn = sqlite3.connect(self.db_path)
         # We use pandas here because it handles the row-looping efficiently
-        df = pd.read_sql_query("SELECT genres FROM matches", conn)
+        df = pd.read_sql_query("SELECT genres FROM matches WHERE google_id = ?", conn, params=(google_id,))  # 2. filter by user
         conn.close()
 
         genre_counts = {}
@@ -152,3 +299,29 @@ if __name__ == "__main__":
     # app.add_dislike("Jumanji")
     # print("Matches:", app.get_matches())
     # print("Dislikes:", app.get_dislikes())
+
+    
+    #print(app.get_dislike_titles())
+    #print(app.get_match_titles())
+
+    print("-- create user -- ")
+    app.create_user("1234567890", "test@gmail.com", True, "John Doe", "https://photo.url")
+    print(app.get_user_profile_info("1234567890"))
+    print()
+
+    print("-- add match -- ")
+    app.add_match("Toy Story", "1234567890")
+    app.add_match("Jumanji", "1234567890")
+    print(app.get_match_titles("1234567890"))
+    print()
+
+    print("-- add dislike -- ")
+    app.add_dislike("Grumpier Old Men", "1234567890")
+    print(app.get_dislike_titles("1234567890"))
+    print()
+
+    print("-- get rec -- ")
+    print(app.get_rec("1234567890"))
+    print()
+
+    app.print_schemas()
