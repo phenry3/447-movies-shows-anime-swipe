@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { StatsCard } from "@/components/StatsCard";
 import { Pie } from "react-chartjs-2";
+import { useSession } from "next-auth/react";  // phil change for stats to work
 import {
   Chart as ChartJS,
   ArcElement,
@@ -24,11 +25,21 @@ interface GenreStats {
 }
 
 export default function StatsPage() {
+  const { data: session, status } = useSession();  // phill added for status to work
   const [stats, setStats] = useState<Stats | null>(null);
   const [genres, setGenres] = useState<GenreStats>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+
+    // needed to add user authentication check, phil added
+    if (status !== "authenticated" || !session?.user?.googleId) {
+      if (status === "unauthenticated") setLoading(false);
+      return;
+    }
+
+    const googleId = session.user.googleId;  // phil change 412
+
     async function fetchStats() {
       try {
         const resStats = await fetch(
@@ -42,7 +53,7 @@ export default function StatsPage() {
         setStats(dataStats);
 
         const resGenres = await fetch(
-          `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/stats/genres`,
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/stats/genres/${googleId}`,
           { cache: "no-store" }
         );
         if (!resGenres.ok)
@@ -64,7 +75,7 @@ export default function StatsPage() {
     }
 
     fetchStats();
-  }, []);
+  }, [status, session?.user?.googleId]); // user id dependency
 
   if (loading)
     return <p className="p-6 text-white">Loading stats...</p>;
