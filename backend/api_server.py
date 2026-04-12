@@ -172,3 +172,8 @@ def get_counts():
 def get_genre_pie_data(google_id: str):
     """Returns { "GenreName": Count } for all liked items."""
     return backend.get_genre_stats(google_id)
+    
+@api.get("/api/search")
+def search(query: str, limit: int = 10):
+    titles = backend.search_titles(query, limit)
+    return [to_api_shape(fetch_movie_by_title(t)) for t in titles]
