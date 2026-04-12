@@ -116,7 +116,7 @@ class MovieBackend:
         if not user:
             conn.close()
             return "Error: google_id not found"
-        df = pd.read_sql_query("SELECT * FROM matches WHERE google_id = ?", conn, params=(google_id,))
+        df = pd.read_sql_query("SELECT * FROM matches WHERE google_id = ? ORDER BY rowid DESC", conn, params=(google_id,))  # added ORDER BY rowid DESC
         conn.close()
         return df.to_dict(orient='records')
     
