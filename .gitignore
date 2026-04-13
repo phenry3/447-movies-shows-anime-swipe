@@ -26,3 +26,5 @@ Thumbs.db
 backend/exported_movies.csv
 final_recommender_dataset.csv
 csv_for_algo.csv
+
+.env

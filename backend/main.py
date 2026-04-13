@@ -1,10 +1,13 @@
 import os
+from dotenv import load_dotenv
 import sqlite3
 import requests
 import pandas as pd
 from final_csv_to_db import initDatabase
 from final_db_to_csv import export_to_algo_csv
 from rec_algo import MovieRecommender
+
+load_dotenv()
 
 TMDB_API_KEY = os.getenv("TMDB_API_KEY")
 TMDB_BASE = "https://api.themoviedb.org/3"
@@ -322,6 +325,22 @@ if __name__ == "__main__":
 
     print("-- get rec -- ")
     print(app.get_rec("1234567890"))
+    print()
+
+    print("TMDB_API_KEY:", TMDB_API_KEY)
+    print("\n-- thumbnail tests --")
+    print("\n-- thumbnail tests --")
+    test_titles = [
+        "Toy Story",
+        "The Terror of Tiny Town",
+        "Jumanji",
+        "Naruto",
+        "Attack on Titan"
+    ]
+
+    for title in test_titles:
+        print(title, "->", app.get_thumbnail(title))
+
     print()
 
     app.print_schemas()

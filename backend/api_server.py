@@ -98,7 +98,7 @@ def to_api_shape(row: dict) -> MediaItem:
         title=str(title),
         overview=str(row.get("description") or ""),
         genres=parse_genres(row.get("genres")),
-        thumbnail_url=str(row.get("thumbnail_url") or ""),
+        thumbnail_url=backend.get_thumbnail(str(title)) or str(row.get("thumbnail_url") or ""),
         media_type=media_type,  # type: ignore
         release_date="",
         vote_average=0.0,
