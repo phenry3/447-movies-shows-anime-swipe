@@ -307,40 +307,4 @@ if __name__ == "__main__":
     #print(app.get_dislike_titles())
     #print(app.get_match_titles())
 
-    print("-- create user -- ")
-    app.create_user("1234567890", "test@gmail.com", True, "John Doe", "https://photo.url")
-    print(app.get_user_profile_info("1234567890"))
-    print()
-
-    print("-- add match -- ")
-    app.add_match("Toy Story", "1234567890")
-    app.add_match("Jumanji", "1234567890")
-    print(app.get_match_titles("1234567890"))
-    print()
-
-    print("-- add dislike -- ")
-    app.add_dislike("Grumpier Old Men", "1234567890")
-    print(app.get_dislike_titles("1234567890"))
-    print()
-
-    print("-- get rec -- ")
-    print(app.get_rec("1234567890"))
-    print()
-
-    print("TMDB_API_KEY:", TMDB_API_KEY)
-    print("\n-- thumbnail tests --")
-    print("\n-- thumbnail tests --")
-    test_titles = [
-        "Toy Story",
-        "The Terror of Tiny Town",
-        "Jumanji",
-        "Naruto",
-        "Attack on Titan"
-    ]
-
-    for title in test_titles:
-        print(title, "->", app.get_thumbnail(title))
-
-    print()
-
-    app.print_schemas()
+    print(app.search_titles("The Godfather"))

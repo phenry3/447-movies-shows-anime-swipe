@@ -125,6 +125,14 @@ def create_user(user: UserIn):
         user.name,
         user.picture,
     )
+
+    # for demo all users will have 5 popular movies added to their liked lists
+    backend.add_match("Dune", user.google_id)
+    backend.add_match("Star Wars", user.google_id)
+    backend.add_match("Avengers: Age of Ultron", user.google_id)
+    backend.add_match("The Dark Knight", user.google_id)
+    backend.add_match("The GodFather", user.google_id)
+
     return {"status": result}
 
 @api.get("/api/rec/{google_id}", response_model=MediaItem)
