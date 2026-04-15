@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Heart, Compass, Film, BarChart, Search} from "lucide-react";
-
+import LogoutButton from "./LogoutButton"
 {/**Helper function that takes inputs and gives one string that can be put into className */}
 function cx(...classes: Array<string | false | undefined>) {
   return classes.filter(Boolean).join(" ");
@@ -69,6 +69,12 @@ export default function Navigation() {
             <Search className={iconClass} />
             <span className={textClass}>Search</span>
           </Link>
+
+          <LogoutButton
+            className={cx(baseLink, inactiveLink, "text-purple-300 hover:text-purple-200")}
+          />
+            
+          
         </nav>
       </div>
     </header>
