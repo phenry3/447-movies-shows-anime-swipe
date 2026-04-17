@@ -171,15 +171,14 @@ def matches(google_id: str):
     
     return [to_api_shape(r) for r in rows]
 
-@api.get("/api/stats")
-def get_counts():
-    """Returns { "liked": 12, "disliked": 4 }"""
-    return backend.get_stats()
-
 @api.get("/api/stats/genres/{google_id}")
 def get_genre_pie_data(google_id: str):
     """Returns { "GenreName": Count } for all liked items."""
     return backend.get_genre_stats(google_id)
+
+@api.get("/api/stats/{google_id}")
+def get_counts(google_id: str):
+    return backend.get_stats(google_id)
     
 @api.get("/api/search")
 def search(query: str, limit: int = 10):

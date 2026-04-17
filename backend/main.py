@@ -246,17 +246,13 @@ class MovieBackend:
             print(df)
         conn.close()
 
-    def get_stats(self):
-        """Returns the total counts for matches and dislikes."""
+    def get_stats(self, google_id):
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
-        
-        cursor.execute("SELECT COUNT(*) FROM matches")
+        cursor.execute("SELECT COUNT(*) FROM matches WHERE google_id = ?", (google_id,))
         liked_count = cursor.fetchone()[0]
-        
-        cursor.execute("SELECT COUNT(*) FROM dislikes")
+        cursor.execute("SELECT COUNT(*) FROM dislikes WHERE google_id = ?", (google_id,))
         disliked_count = cursor.fetchone()[0]
-        
         conn.close()
         return {"liked": liked_count, "disliked": disliked_count}
 
