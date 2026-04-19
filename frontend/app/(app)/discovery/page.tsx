@@ -61,10 +61,10 @@ export default function DiscoveryPage() {
           <MediaCard item={item} />
         </div>
 
-        <div className="mt-4 flex items-center gap-10">
+        <div className="mb-5 flex items-center gap-10">
           <button
             onClick={dislike}
-            className="grid h-15 w-15 place-items-center rounded-full bg-red-600/90 text-3xl shadow-lg ring-1 ring-white/10"
+            className="grid h-14 w-14 place-items-center rounded-full bg-red-600/90 text-3xl shadow-lg ring-1 ring-white/10"
             aria-label="Dislike"
           >
             <X className={iconClass} />
@@ -72,7 +72,7 @@ export default function DiscoveryPage() {
 
           <button
             onClick={like}
-            className="grid h-15 w-15 place-items-center rounded-full bg-green-600/90 text-3xl shadow-lg ring-1 ring-white/10"
+            className="grid h-14 w-14 place-items-center rounded-full bg-green-600/90 text-3xl shadow-lg ring-1 ring-white/10"
             aria-label="Like"
           >
             <Heart className={iconClass} />
