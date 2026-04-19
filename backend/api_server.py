@@ -37,6 +37,10 @@ class FeedbackIn(BaseModel):
     title: str
     action: Literal["like", "dislike"]
 
+class RemoveMatchIn(BaseModel):
+    google_id: str
+    title: str
+
 class UserIn(BaseModel):
     google_id: str
     email: str
@@ -170,6 +174,24 @@ def matches(google_id: str):
         raise HTTPException(status_code=400, detail=rows)
     
     return [to_api_shape(r) for r in rows]
+
+@api.delete("/api/matches")
+def remove_match(payload: RemoveMatchIn):
+    title = payload.title.strip()
+    google_id = payload.google_id.strip()
+
+    if not title:
+        raise HTTPException(status_code=400, detail="title is required")
+
+    if not google_id:
+        raise HTTPException(status_code=400, detail="google_id is required")
+
+    result = backend.remove_match(title, google_id)
+
+    if isinstance(result, str) and result.startswith("Error"):
+        raise HTTPException(status_code=400, detail=result)
+
+    return {"status": "removed"}
 
 @api.get("/api/stats")
 def get_counts():

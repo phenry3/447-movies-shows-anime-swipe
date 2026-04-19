@@ -1,4 +1,4 @@
-import { MediaItem, FeedbackPaylaod } from "./types/media";
+import { MediaItem, FeedbackPaylaod, RemoveMatchPayload } from "./types/media";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
@@ -39,6 +39,16 @@ export async function getMatches(google_id : string) : Promise<MediaItem[]>{
     const res = await fetch(`${BASE_URL}/api/matches/${google_id}`,{cache:"no-store"});
     if(!res.ok) throw new Error(`get Matches failed: ${res.status}`);
     return res.json();
+}
+
+export async function removeMatch(payload: RemoveMatchPayload): Promise<void> {
+    const res = await fetch(`${BASE_URL}/api/matches`, {
+        method: "DELETE",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) throw new Error(`removeMatch failed: ${res.status}`);
 }
 
 export async function searchMovies(query: string) {
