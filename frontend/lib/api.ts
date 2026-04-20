@@ -62,3 +62,16 @@ export async function searchMovies(query: string) {
 
   return res.json();
 }
+
+export async function getLikedTitles(googleId: string): Promise<string[]> {
+  const res = await fetch(`http://localhost:8000/api/likes/${googleId}`);
+  if (!res.ok) throw new Error("Failed to fetch liked titles");
+  return res.json();
+}
+
+export async function getLikedCount(googleId: string): Promise<number> {
+  const res = await fetch(`http://localhost:8000/api/likes/count/${googleId}`);
+  if (!res.ok) throw new Error("Failed to fetch liked count");
+  const data = await res.json();
+  return data.count;
+}

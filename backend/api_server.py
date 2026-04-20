@@ -207,3 +207,21 @@ def get_genre_pie_data(google_id: str):
 def search(query: str, limit: int = 10):
     titles = backend.search_titles(query, limit)
     return [to_api_shape(fetch_movie_by_title(t)) for t in titles]
+
+@api.get("/api/likes/{google_id}", response_model=List[str])
+def get_liked_titles(google_id: str):
+    rows = backend.get_matches(google_id)
+
+    if isinstance(rows, str) and rows.startswith("Error"):
+        raise HTTPException(status_code=400, detail=rows)
+
+    return [str(r["title"]) for r in rows]
+
+@api.get("/api/likes/count/{google_id}")
+def get_liked_count(google_id: str):
+    rows = backend.get_matches(google_id)
+
+    if isinstance(rows, str) and rows.startswith("Error"):
+        raise HTTPException(status_code=400, detail=rows)
+
+    return {"count": len(rows)}
