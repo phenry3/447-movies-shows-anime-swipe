@@ -66,6 +66,13 @@ def parse_genres(genres_val:Any) -> List[str]:
     return cleaned
 
 
+def cached_thumbnail_url(thumbnail_val: Any) -> str:
+    thumbnail_url = str(thumbnail_val or "").strip()
+    if thumbnail_url.startswith(("http://", "https://")):
+        return thumbnail_url
+    return ""
+
+
 def fetch_movie_by_title(title: str) -> dict:
     
     #Look up the full row in movies table (because recommender returns only a title).
@@ -84,7 +91,7 @@ def fetch_movie_by_title(title: str) -> dict:
         conn.close()
 
 
-def to_api_shape(row: dict) -> MediaItem:
+def to_api_shape(row: dict, prefer_cached_thumbnail: bool = False) -> MediaItem:
     """
     Maps DB columns -> frontend JSON keys.
     DB: description, genres, thumbnail, content_type
@@ -98,11 +105,18 @@ def to_api_shape(row: dict) -> MediaItem:
     if media_type not in ("movie", "tv", "anime"):
         media_type = "movie"
 
+    fallback_thumbnail = str(row.get("thumbnail_url") or "").strip()
+    thumbnail_url = ""
+    if prefer_cached_thumbnail:
+        thumbnail_url = cached_thumbnail_url(fallback_thumbnail)
+    if not thumbnail_url:
+        thumbnail_url = backend.get_thumbnail(str(title)) or fallback_thumbnail
+
     return MediaItem(
         title=str(title),
         overview=str(row.get("description") or ""),
         genres=parse_genres(row.get("genres")),
-        thumbnail_url=backend.get_thumbnail(str(title)) or str(row.get("thumbnail_url") or ""),
+        thumbnail_url=thumbnail_url,
         media_type=media_type,  # type: ignore
         release_date="",
         vote_average=0.0,
@@ -130,12 +144,6 @@ def create_user(user: UserIn):
         user.picture,
     )
 
-    # for demo all users will have 5 popular movies added to their liked lists
-    backend.add_match("Dune", user.google_id)
-    backend.add_match("Star Wars", user.google_id)
-    backend.add_match("Avengers: Age of Ultron", user.google_id)
-    backend.add_match("The Dark Knight", user.google_id)
-    backend.add_match("The GodFather", user.google_id)
 
     return {"status": result}
 
@@ -173,7 +181,7 @@ def matches(google_id: str):
     if isinstance(rows, str) and rows.startswith("Error"):
         raise HTTPException(status_code=400, detail=rows)
     
-    return [to_api_shape(r) for r in rows]
+    return [to_api_shape(r, prefer_cached_thumbnail=True) for r in rows]
 
 @api.delete("/api/matches")
 def remove_match(payload: RemoveMatchIn):
@@ -193,10 +201,10 @@ def remove_match(payload: RemoveMatchIn):
 
     return {"status": "removed"}
 
-@api.get("/api/stats")
-def get_counts():
+@api.get("/api/stats/{google_id}")
+def get_counts(google_id: str):
     """Returns { "liked": 12, "disliked": 4 }"""
-    return backend.get_stats()
+    return backend.get_stats(google_id)
 
 @api.get("/api/stats/genres/{google_id}")
 def get_genre_pie_data(google_id: str):

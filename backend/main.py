@@ -90,6 +90,11 @@ class MovieBackend:
         if not user:
             conn.close()
             return "Error: google_id not found"
+
+        conn.close()
+        self.get_thumbnail(title)
+
+        conn = sqlite3.connect(self.db_path)
         
         # makes sure doesnt exist
         conn.execute("INSERT INTO matches SELECT *, ? FROM movies WHERE title = ? AND NOT EXISTS (SELECT 1 FROM matches WHERE title = ? AND google_id = ?)", 
@@ -118,7 +123,7 @@ class MovieBackend:
         user = conn.execute("SELECT 1 FROM users WHERE google_id = ?", (google_id,)).fetchone()
         if not user:
             conn.close()
-            return "Error: google_id not found"
+            return []
         df = pd.read_sql_query("SELECT * FROM matches WHERE google_id = ? ORDER BY rowid DESC", conn, params=(google_id,))  # added ORDER BY rowid DESC
         conn.close()
         return df.to_dict(orient='records')
@@ -166,6 +171,26 @@ class MovieBackend:
         return self.recommender.serving_rec(self.get_match_titles(google_id), self.get_dislike_titles(google_id))
     
     # --- Thumbnail Logic ---
+    def _cache_thumbnail(self, title, thumbnail_url):
+        if not thumbnail_url:
+            return
+
+        conn = sqlite3.connect(self.db_path)
+        try:
+            conn.execute(
+                "UPDATE movies SET thumbnail_url = ? WHERE title = ?",
+                (thumbnail_url, title)
+            )
+            conn.execute(
+                "UPDATE matches SET thumbnail_url = ? WHERE title = ?",
+                (thumbnail_url, title)
+            )
+            conn.commit()
+        except sqlite3.OperationalError:
+            pass
+        finally:
+            conn.close()
+
     def get_thumbnail(self, title):
         conn = sqlite3.connect(self.db_path)
 
@@ -194,7 +219,9 @@ class MovieBackend:
                 if data.get("results"):
                     poster = data["results"][0].get("poster_path")
                     if poster:
-                        return f"{TMDB_IMG}{poster}"
+                        thumbnail_url = f"{TMDB_IMG}{poster}"
+                        self._cache_thumbnail(title, thumbnail_url)
+                        return thumbnail_url
 
             elif media == "tv":
                 r = requests.get(
@@ -207,7 +234,9 @@ class MovieBackend:
                 if data.get("results"):
                     poster = data["results"][0].get("poster_path")
                     if poster:
-                        return f"{TMDB_IMG}{poster}"
+                        thumbnail_url = f"{TMDB_IMG}{poster}"
+                        self._cache_thumbnail(title, thumbnail_url)
+                        return thumbnail_url
 
             elif media == "anime":
                 r = requests.get(
@@ -222,6 +251,7 @@ class MovieBackend:
                     jpg = images.get("jpg", {})
                     image_url = jpg.get("image_url")
                     if image_url:
+                        self._cache_thumbnail(title, image_url)
                         return image_url
 
         except:
@@ -246,15 +276,15 @@ class MovieBackend:
             print(df)
         conn.close()
 
-    def get_stats(self):
+    def get_stats(self, google_id):
         """Returns the total counts for matches and dislikes."""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
-        cursor.execute("SELECT COUNT(*) FROM matches")
+        cursor.execute("SELECT COUNT(*) FROM matches WHERE google_id = ?", (google_id,))
         liked_count = cursor.fetchone()[0]
         
-        cursor.execute("SELECT COUNT(*) FROM dislikes")
+        cursor.execute("SELECT COUNT(*) FROM dislikes WHERE google_id = ?", (google_id,))
         disliked_count = cursor.fetchone()[0]
         
         conn.close()
