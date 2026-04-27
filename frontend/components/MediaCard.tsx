@@ -5,9 +5,10 @@ import type { MediaItem } from "@/lib/types/media";
 type MediaCardProps = {
   item: MediaItem;
   onClick?: () => void;
+  disableLink?: boolean;
 };
 
-export function MediaCard({ item, onClick }: MediaCardProps) {
+export function MediaCard({ item, onClick, disableLink = false }: MediaCardProps) {
   const href = `/media/${encodeURIComponent(item.title)}`;
   const imgSrc = item.thumbnail_url.startsWith("http")
     ? item.thumbnail_url
@@ -73,6 +74,10 @@ export function MediaCard({ item, onClick }: MediaCardProps) {
         {cardContent}
       </button>
     );
+  }
+
+  if (disableLink) {
+    return <div className={className}>{cardContent}</div>;
   }
 
   return (
