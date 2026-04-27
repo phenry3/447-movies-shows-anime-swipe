@@ -71,7 +71,7 @@ export default function Navigation() {
           </Link>
 
           <LogoutButton
-            className={cx(baseLink, inactiveLink, "text-purple-300 hover:text-purple-200")}
+            className={cx(baseLink, inactiveLink, "text-purple-300 hover:text-purple-200 cursor-pointer")}
           />
             
           

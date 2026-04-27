@@ -105,13 +105,13 @@ export default function DiscoveryPage() {
     <main className="min-h-screen bg-black text-white">
       <section className="mx-auto flex max-w-6xl flex-col items-center px-6">
         <div className="mt-5 w-full flex justify-center">
-          <MediaCard item={item} />
+          <MediaCard item={item} disableLink />
         </div>
 
-        <div className="mb-5 flex items-center gap-10">
+        <div className="mt-4  flex items-center gap-10">
           <button
             onClick={dislike}
-            className="grid h-14 w-14 place-items-center rounded-full bg-red-600/90 text-3xl shadow-lg ring-1 ring-white/10"
+            className="grid h-15 w-15 place-items-center rounded-full bg-red-600/90 text-3xl shadow-lg ring-1 ring-white/10 cursor-pointer"
             aria-label="Dislike"
           >
             <X className={iconClass} />
@@ -119,7 +119,7 @@ export default function DiscoveryPage() {
 
           <button
             onClick={like}
-            className="grid h-14 w-14 place-items-center rounded-full bg-green-600/90 text-3xl shadow-lg ring-1 ring-white/10"
+            className="grid h-15 w-15 place-items-center rounded-full bg-green-600/90 text-3xl shadow-lg ring-1 ring-white/10 cursor-pointer"
             aria-label="Like"
           >
             <Heart className={iconClass} />
