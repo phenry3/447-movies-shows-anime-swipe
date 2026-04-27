@@ -43,7 +43,7 @@ export default function StatsPage() {
     async function fetchStats() {
       try {
         const resStats = await fetch(
-          `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/stats`,
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/stats/${googleId}`,
           { cache: "no-store" }
         );
         if (!resStats.ok)
