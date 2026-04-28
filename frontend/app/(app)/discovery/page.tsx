@@ -4,46 +4,92 @@ import { useEffect, useState } from "react";
 import { MediaCard } from "@/components/MediaCard";
 import { DetailsCard } from "@/components/DetailsCard";
 import { Heart, X } from "lucide-react";
-import { getRec, sendFeedback } from "@/lib/api";
+import { getRec, sendFeedback, getLikedCount } from "@/lib/api";
 import { MediaItem } from "@/lib/types/media";
-import {useSession} from "next-auth/react";
+import { useSession } from "next-auth/react";
 
 export default function DiscoveryPage() {
   const { data: session, status } = useSession();
+
   const [item, setItem] = useState<MediaItem | null>(null);
   const [loading, setLoading] = useState(true);
+  const [likedCount, setLikedCount] = useState<number | null>(null);
 
-  
-  async function loadRec(){
+  useEffect(() => {
+    async function loadCount() {
+      if (!session?.user?.googleId) return;
 
-    if (!session?.user?.googleId) return;
-    setLoading(true);
-    try {
-      const rec = await getRec(session.user.googleId);
-      setItem(rec);
+      try {
+        const count = await getLikedCount(session.user.googleId);
+        setLikedCount(count);
+      } catch (err) {
+        console.error("Failed to load liked count:", err);
+      }
     }
-    finally {
-      setLoading(false);
-    }
-  }
 
-  useEffect(() => {if (status === "authenticated" && session?.user?.googleId) {
+    if (status === "authenticated") {
+      loadCount();
+    }
+  }, [status, session?.user?.googleId]);
+
+  useEffect(() => {
+    async function loadRec() {
+      if (!session?.user?.googleId) return;
+      if (likedCount === null || likedCount < 5) return;
+
+      setLoading(true);
+      try {
+        const rec = await getRec(session.user.googleId);
+        setItem(rec);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    if (status === "authenticated") {
       loadRec();
-    }}, [status, session?.user?.googleId]);
+    }
+  }, [status, session?.user?.googleId, likedCount]);
 
   async function dislike() {
     if (!item || !session?.user?.googleId) return;
-    const next = await sendFeedback({google_id: session.user.googleId, title: item.title, action: "dislike"});
+    const next = await sendFeedback({
+      google_id: session.user.googleId,
+      title: item.title,
+      action: "dislike",
+    });
     setItem(next);
   }
 
   async function like() {
     if (!item || !session?.user?.googleId) return;
-    const next = await sendFeedback({google_id: session.user.googleId, title: item.title, action: "like"});
+    const next = await sendFeedback({
+      google_id: session.user.googleId,
+      title: item.title,
+      action: "like",
+    });
     setItem(next);
   }
 
-  if (loading) return <div>Loading...</div>
+  if (likedCount !== null && likedCount < 5) {
+    return (
+      <main className="min-h-screen bg-black text-white flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-semibold">
+            Please search and select at least 5 movies
+          </h1>
+          <p className="mt-2 text-white/60">
+            You’ve selected {likedCount} so far
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  if (loading || likedCount === null) {
+    return <div className="text-white p-6">Loading...</div>;
+  }
+
   if (!item) {
     return (
       <main className="min-h-screen bg-black text-white p-6">
@@ -52,19 +98,20 @@ export default function DiscoveryPage() {
     );
   }
 
-  const iconClass = "h-9 w-9 text-white-500 transition-colors hover:text-white-800";
+  const iconClass =
+    "h-9 w-9 text-white-500 transition-colors hover:text-white-800";
 
   return (
     <main className="min-h-screen bg-black text-white">
       <section className="mx-auto flex max-w-6xl flex-col items-center px-6">
         <div className="mt-5 w-full flex justify-center">
-          <MediaCard item={item} />
+          <MediaCard item={item} disableLink />
         </div>
 
-        <div className="mt-4 flex items-center gap-10">
+        <div className="mt-4  flex items-center gap-10">
           <button
             onClick={dislike}
-            className="grid h-15 w-15 place-items-center rounded-full bg-red-600/90 text-3xl shadow-lg ring-1 ring-white/10"
+            className="grid h-15 w-15 place-items-center rounded-full bg-red-600/90 text-3xl shadow-lg ring-1 ring-white/10 cursor-pointer"
             aria-label="Dislike"
           >
             <X className={iconClass} />
@@ -72,7 +119,7 @@ export default function DiscoveryPage() {
 
           <button
             onClick={like}
-            className="grid h-15 w-15 place-items-center rounded-full bg-green-600/90 text-3xl shadow-lg ring-1 ring-white/10"
+            className="grid h-15 w-15 place-items-center rounded-full bg-green-600/90 text-3xl shadow-lg ring-1 ring-white/10 cursor-pointer"
             aria-label="Like"
           >
             <Heart className={iconClass} />

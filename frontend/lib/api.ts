@@ -1,4 +1,4 @@
-import { MediaItem, FeedbackPaylaod } from "./types/media";
+import { MediaItem, FeedbackPaylaod, RemoveMatchPayload } from "./types/media";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
@@ -41,6 +41,16 @@ export async function getMatches(google_id : string) : Promise<MediaItem[]>{
     return res.json();
 }
 
+export async function removeMatch(payload: RemoveMatchPayload): Promise<void> {
+    const res = await fetch(`${BASE_URL}/api/matches`, {
+        method: "DELETE",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) throw new Error(`removeMatch failed: ${res.status}`);
+}
+
 export async function searchMovies(query: string) {
   const res = await fetch(
     `http://127.0.0.1:8000/api/search?query=${encodeURIComponent(query)}&limit=10`
@@ -51,4 +61,17 @@ export async function searchMovies(query: string) {
   }
 
   return res.json();
+}
+
+export async function getLikedTitles(googleId: string): Promise<string[]> {
+  const res = await fetch(`http://localhost:8000/api/likes/${googleId}`);
+  if (!res.ok) throw new Error("Failed to fetch liked titles");
+  return res.json();
+}
+
+export async function getLikedCount(googleId: string): Promise<number> {
+  const res = await fetch(`http://localhost:8000/api/likes/count/${googleId}`);
+  if (!res.ok) throw new Error("Failed to fetch liked count");
+  const data = await res.json();
+  return data.count;
 }
