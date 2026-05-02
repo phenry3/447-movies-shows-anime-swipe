@@ -18,6 +18,7 @@ class MovieBackend:
         self.db_path = db_path
         self._create_tables()
         self.recommender = MovieRecommender() 
+        self.backfill_streaming_services()
 
     def _create_tables(self):
         conn = sqlite3.connect(self.db_path)
@@ -43,6 +44,12 @@ class MovieBackend:
             conn.execute("ALTER TABLE dislikes ADD COLUMN google_id TEXT REFERENCES users(google_id)")
         except:
             pass  # columns already exist
+        
+        # added for the streaming_service 
+        try:
+            conn.execute("ALTER TABLE matches ADD COLUMN streaming_service TEXT")
+        except:
+            pass  # column already exists
 
         conn.commit()
         conn.close()
@@ -92,10 +99,24 @@ class MovieBackend:
             return "Error: google_id not found"
         
         # makes sure doesnt exist
-        conn.execute("INSERT INTO matches SELECT *, ? FROM movies WHERE title = ? AND NOT EXISTS (SELECT 1 FROM matches WHERE title = ? AND google_id = ?)", 
-             (google_id, title, title, google_id))
+        conn.execute("INSERT INTO matches SELECT *, ?, NULL FROM movies WHERE title = ? AND NOT EXISTS (SELECT 1 FROM matches WHERE title = ? AND google_id = ?)", 
+            (google_id, title, title, google_id))
         
         conn.commit()
+
+        # NEW: !!!!! fetch and store streaming service !!!!!
+        row = conn.execute(
+            "SELECT content_type FROM movies WHERE title = ? LIMIT 1", (title,)
+        ).fetchone()
+        if row:
+            service = self.get_streaming_service(title, row[0])
+            if service:
+                conn.execute(
+                    "UPDATE matches SET streaming_service = ? WHERE title = ? AND google_id = ?",
+                    (service, title, google_id)
+                )
+                conn.commit()
+
         conn.close()
 
     def remove_match(self, title, google_id):
@@ -228,6 +249,44 @@ class MovieBackend:
             return None
 
         return None
+    
+    def get_streaming_service(self, title: str, media_type: str):
+        try:
+            endpoint = "movie" if media_type == "movie" else "tv"
+            search = requests.get(
+                f"{TMDB_BASE}/search/{endpoint}",
+                params={"api_key": TMDB_API_KEY, "query": title},
+                timeout=5
+            )
+            results = search.json().get("results")
+            if not results:
+                return None
+            tmdb_id = results[0]["id"]
+            providers_resp = requests.get(
+                f"{TMDB_BASE}/{endpoint}/{tmdb_id}/watch/providers",
+                params={"api_key": TMDB_API_KEY},
+                timeout=5
+            )
+            us_data = providers_resp.json().get("results", {}).get("US", {})
+            for tier in ("flatrate", "free", "ads"):
+                providers = us_data.get(tier)
+                if providers:
+                    return providers[0]["provider_name"]
+        except:
+            return None
+        return None
+
+    def get_streaming_stats(self, google_id):
+        conn = sqlite3.connect(self.db_path)
+        df = pd.read_sql_query(
+            "SELECT streaming_service FROM matches WHERE google_id = ? AND streaming_service IS NOT NULL",
+            conn, params=(google_id,)
+        )
+        conn.close()
+        counts = {}
+        for service in df["streaming_service"]:
+            counts[service] = counts.get(service, 0) + 1
+        return counts
         
     # --- Dev Funcs ---
     def print_schemas(self):
@@ -289,6 +348,25 @@ class MovieBackend:
         conn.close()
 
         return [r[0] for r in results]  # return ONLY titles
+
+    def backfill_streaming_services(self):
+        """On boot, fill in streaming_service for any liked movies that don't have one yet."""
+        conn = sqlite3.connect(self.db_path)
+        rows = conn.execute(
+            "SELECT title, content_type, google_id FROM matches WHERE streaming_service IS NULL"
+        ).fetchall()
+        conn.close()
+
+        for title, media_type, google_id in rows:
+            service = self.get_streaming_service(title, media_type or "movie")
+            if service:
+                conn = sqlite3.connect(self.db_path)
+                conn.execute(
+                    "UPDATE matches SET streaming_service = ? WHERE title = ? AND google_id = ?",
+                    (service, title, google_id)
+                )
+                conn.commit()
+                conn.close()
 
 if __name__ == "__main__":
     app = MovieBackend()

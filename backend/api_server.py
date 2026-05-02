@@ -176,6 +176,10 @@ def get_genre_pie_data(google_id: str):
     """Returns { "GenreName": Count } for all liked items."""
     return backend.get_genre_stats(google_id)
 
+@api.get("/api/stats/streaming/{google_id}")
+def get_streaming_pie_data(google_id: str):
+    return backend.get_streaming_stats(google_id)
+
 @api.get("/api/stats/{google_id}")
 def get_counts(google_id: str):
     return backend.get_stats(google_id)
