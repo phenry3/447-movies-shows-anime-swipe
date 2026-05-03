@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react";
 import { MediaCard } from "@/components/MediaCard";
 import { DetailsCard } from "@/components/DetailsCard";
+import UndoButton from "@/components/UndoButton";
 import { Heart, X } from "lucide-react";
-import { getRec, sendFeedback, getLikedCount } from "@/lib/api";
+import { getRec, sendFeedback, getLikedCount, undoFeedback } from "@/lib/api";
 import { MediaItem } from "@/lib/types/media";
 import { useSession } from "next-auth/react";
 
@@ -14,6 +15,8 @@ export default function DiscoveryPage() {
   const [item, setItem] = useState<MediaItem | null>(null);
   const [loading, setLoading] = useState(true);
   const [likedCount, setLikedCount] = useState<number | null>(null);
+  const [canUndo, setCanUndo] = useState(false);
+  const [undoing, setUndoing] = useState(false);
 
   useEffect(() => {
     async function loadCount() {
@@ -59,6 +62,7 @@ export default function DiscoveryPage() {
       action: "dislike",
     });
     setItem(next);
+    setCanUndo(true);
   }
 
   async function like() {
@@ -69,6 +73,23 @@ export default function DiscoveryPage() {
       action: "like",
     });
     setItem(next);
+    setCanUndo(true);
+  }
+
+
+  async function undo(){
+    if (!canUndo || undoing) return;
+    if (!session?.user?.googleId) return;
+    setUndoing(true);
+    try{
+      const undon = await undoFeedback(session.user.googleId);
+      setItem(undon);
+      setCanUndo(false);
+    }
+    finally{
+      setUndoing(false);
+    }
+    
   }
 
   if (likedCount !== null && likedCount < 5) {
@@ -125,6 +146,8 @@ export default function DiscoveryPage() {
             <Heart className={iconClass} />
           </button>
         </div>
+
+        <UndoButton disabled={!canUndo} loading={undoing} onClick={undo} />
 
         <div className="mt-6 w-full mb-6">
           <DetailsCard item={item} />

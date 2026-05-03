@@ -75,3 +75,10 @@ export async function getLikedCount(googleId: string): Promise<number> {
   const data = await res.json();
   return data.count;
 }
+
+export async function undoFeedback(googleId: string): Promise<MediaItem> {
+  const res = await fetch (`${BASE_URL}/api/undo/${googleId}`);
+  if (!res.ok) throw new Error (`undoFeedback failed : ${res.status}`);
+  const media = await res.json();
+  return media;
+}
