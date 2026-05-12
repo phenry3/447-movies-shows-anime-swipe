@@ -9,7 +9,7 @@ import random
 
 from main import MovieBackend  # imports the class from backend/main.py
 
-BACKEND_URL = "http://localhost:3000"
+BACKEND_URL = "http://localhost:8000"
 
 api = FastAPI()
 api.add_middleware(
