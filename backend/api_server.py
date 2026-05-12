@@ -30,6 +30,7 @@ class MediaItem(BaseModel):
     media_type: MediaType
     release_date: str = ""     # not in DB right now
     vote_average: float = 0.0  # not in DB right now
+    streaming_service: str = ""
 
 
 class FeedbackIn(BaseModel):
@@ -93,6 +94,11 @@ def to_api_shape(row: dict) -> MediaItem:
     media_type = row.get("content_type") or "movie"
     if media_type not in ("movie", "tv", "anime"):
         media_type = "movie"
+    
+    streaming_service = row.get("streaming_service")
+
+    if not streaming_service:
+        streaming_service = backend.get_streaming_service(str(title), media_type)
 
     return MediaItem(
         title=str(title),
@@ -102,6 +108,7 @@ def to_api_shape(row: dict) -> MediaItem:
         media_type=media_type,  # type: ignore
         release_date="",
         vote_average=0.0,
+        streaming_service=str(streaming_service or ""),
     )
 
 

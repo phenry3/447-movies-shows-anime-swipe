@@ -12,6 +12,7 @@ export function MediaCard({ item, onClick }: MediaCardProps) {
   const imgSrc = item.thumbnail_url.startsWith("http")
     ? item.thumbnail_url
     : `https://image.tmdb.org/t/p/w500${item.thumbnail_url}`;
+  const streamingService = item.streaming_service?.trim();
   const className =
     "relative block w-full max-w-md overflow-hidden rounded-3xl bg-white/5 ring-1 ring-white/10";
 
@@ -45,6 +46,12 @@ export function MediaCard({ item, onClick }: MediaCardProps) {
         </p>
 
         <div className="mt-3 flex flex-wrap gap-2">
+          {streamingService ? (
+            <span className="rounded-full bg-emerald-500/20 px-3 py-1 text-xs font-medium text-emerald-100 ring-1 ring-emerald-300/30">
+              {streamingService}
+            </span>
+          ) : null}
+
           {(item.genres ?? []).slice(0, 3).map((genre) => (
             <span
               key={genre}
