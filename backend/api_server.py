@@ -1,7 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from fastapi.staticfiles import StaticFiles
 from typing import List, Literal, Any
 import sqlite3
 import random
@@ -9,12 +8,12 @@ import random
 
 from main import MovieBackend  # imports the class from backend/main.py
 
-BACKEND_URL = "http://localhost:8000"
+FRONTEND_URL = "http://localhost:3000"
 
 api = FastAPI()
 api.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=[FRONTEND_URL],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -23,9 +22,7 @@ backend = MovieBackend(db_path="movies.db")
 
 MediaType = Literal["movie", "tv", "anime"]
 
-# mounting no thumbnail found location
-api.mount("/static", StaticFiles(directory="thumbnail_resources"), name="static")
-NOT_FOUND_IMAGES = [f"{BACKEND_URL}/static/not_found_{a}.png" for a in
+NOT_FOUND_IMAGES = [f"{FRONTEND_URL}/thumbnail_resources/not_found_{a}.png" for a in
     ["cat","dog","penguin","frog","owl","fox","bunny","panda","octopus","duck","alien_cat"]]
 
 
