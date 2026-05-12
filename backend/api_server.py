@@ -1,9 +1,9 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
+from fastapi.staticfiles import StaticFiles
 from typing import List, Literal, Any
 import sqlite3
-
 
 
 from main import MovieBackend  # imports the class from backend/main.py
@@ -19,6 +19,10 @@ api.add_middleware(
 backend = MovieBackend(db_path="movies.db")
 
 MediaType = Literal["movie", "tv", "anime"]
+
+# mounting no thumbnail found location
+api.mount("/static", StaticFiles(directory="thumbnail_resources"), name="static")
+DEFAULT_THUMBNAIL = "/static/not_found.png"
 
 
 # ---------- Request/Response schemas ----------
@@ -93,12 +97,16 @@ def to_api_shape(row: dict) -> MediaItem:
     media_type = row.get("content_type") or "movie"
     if media_type not in ("movie", "tv", "anime"):
         media_type = "movie"
+    
+    thumbnail = backend.get_thumbnail(str(title)) or str(row.get("thumbnail_url") or "")
+    if not thumbnail.strip():
+        thumbnail = DEFAULT_THUMBNAIL
 
     return MediaItem(
         title=str(title),
         overview=str(row.get("description") or ""),
         genres=parse_genres(row.get("genres")),
-        thumbnail_url=backend.get_thumbnail(str(title)) or str(row.get("thumbnail_url") or ""),
+        thumbnail_url=thumbnail,
         media_type=media_type,  # type: ignore
         release_date="",
         vote_average=0.0,
