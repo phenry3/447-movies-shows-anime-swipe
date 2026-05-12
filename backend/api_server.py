@@ -170,8 +170,33 @@ def feedback(payload: FeedbackIn):
     
     if isinstance(result, str) and result.startswith("Error"):
         raise HTTPException(status_code=400, detail=result)
+    
+    backend.save_latest_feedback(google_id, title, payload.action)
+
     return one_recommendation(google_id)
 
+
+@api.get("/api/undo/{google_id}", response_model=MediaItem)
+def undo_feedback(google_id: str):
+    google_id = google_id.strip()
+
+    if not google_id:
+        raise HTTPException(status_code=400, detail="google_id is required")
+
+    latest = backend.get_latest_feedback(google_id)
+
+    if not latest:
+        raise HTTPException(status_code=400, detail="Error: no feedback to undo")
+
+    title = latest["title"]
+
+    result = backend.undo_latest_feedback(google_id)
+
+    if isinstance(result, str) and result.startswith("Error"):
+        raise HTTPException(status_code=400, detail=result)
+
+    row = fetch_movie_by_title(title)
+    return to_api_shape(row)
 
 # To be used by the matches page
 @api.get("/api/matches/{google_id}", response_model=List[MediaItem])
