@@ -22,8 +22,8 @@ backend = MovieBackend(db_path="movies.db")
 
 MediaType = Literal["movie", "tv", "anime"]
 
-NOT_FOUND_IMAGES = [f"{FRONTEND_URL}/thumbnail_resources/not_found_{a}.png" for a in
-    ["cat","dog","penguin","frog","owl","fox","bunny","panda","octopus","duck","alien_cat"]]
+NOT_FOUND_IMAGES = [f"/thumbnail_resources/not_found_{a}.png" for a in
+    ["cat","dog","penguin","owl","fox","bunny","panda","octopus","duck","alien_cat"]]
 
 
 # ---------- Request/Response schemas ----------

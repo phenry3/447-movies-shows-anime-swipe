@@ -9,7 +9,7 @@ type MediaCardProps = {
 
 export function MediaCard({ item, onClick }: MediaCardProps) {
   const href = `/media/${encodeURIComponent(item.title)}`;
-  const imgSrc = item.thumbnail_url.startsWith("http")
+  const imgSrc = item.thumbnail_url.startsWith("http") || item.thumbnail_url.startsWith("/")
     ? item.thumbnail_url
     : `https://image.tmdb.org/t/p/w500${item.thumbnail_url}`;
   const className =
