@@ -37,6 +37,16 @@ class MovieBackend:
         """Creates matches and dislikes tables with the same structure as movies with google_id as link to user."""
         conn.execute("CREATE TABLE IF NOT EXISTS matches AS SELECT * FROM movies WHERE 1=0")
         conn.execute("CREATE TABLE IF NOT EXISTS dislikes AS SELECT * FROM movies WHERE 1=0")
+       
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS latest_feedback (
+                google_id TEXT PRIMARY KEY,
+                title TEXT NOT NULL,
+                action TEXT NOT NULL,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (google_id) REFERENCES users(google_id)
+            )
+        """)
 
         try:
             conn.execute("ALTER TABLE matches ADD COLUMN google_id TEXT REFERENCES users(google_id)")
@@ -153,6 +163,60 @@ class MovieBackend:
         conn.commit()
         conn.close()
 
+    # --- Undo Logic ---
+    def save_latest_feedback(self, google_id, title, action):
+        conn = sqlite3.connect(self.db_path)
+
+        conn.execute("""
+            INSERT INTO latest_feedback (google_id, title, action, updated_at)
+            VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(google_id) DO UPDATE SET
+                title = excluded.title,
+                action = excluded.action,
+                updated_at = CURRENT_TIMESTAMP
+        """, (google_id, title, action))
+
+        conn.commit()
+        conn.close()
+
+    def get_latest_feedback(self, google_id):
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+
+        row = conn.execute(
+            "SELECT title, action FROM latest_feedback WHERE google_id = ?",
+            (google_id,)
+        ).fetchone()
+
+        conn.close()
+        return dict(row) if row else None
+
+    def undo_latest_feedback(self, google_id):
+        latest = self.get_latest_feedback(google_id)
+
+        if not latest:
+            return "Error: no feedback to undo"
+
+        title = latest["title"]
+        action = latest["action"]
+
+        if action == "like":
+            result = self.remove_match(title, google_id)
+        elif action == "dislike":
+            result = self.remove_dislike(title, google_id)
+        else:
+            return "Error: invalid feedback action"
+
+        if isinstance(result, str) and result.startswith("Error"):
+            return result
+
+        conn = sqlite3.connect(self.db_path)
+        conn.execute("DELETE FROM latest_feedback WHERE google_id = ?", (google_id,))
+        conn.commit()
+        conn.close()
+
+        return "undone"
+    
     def get_dislikes(self, google_id):
         conn = sqlite3.connect(self.db_path)
         user = conn.execute("SELECT 1 FROM users WHERE google_id = ?", (google_id,)).fetchone()
