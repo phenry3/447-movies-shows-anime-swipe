@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from fastapi.staticfiles import StaticFiles
 from typing import List, Literal, Any
 import sqlite3
+import random
 
 
 from main import MovieBackend  # imports the class from backend/main.py
@@ -22,7 +23,8 @@ MediaType = Literal["movie", "tv", "anime"]
 
 # mounting no thumbnail found location
 api.mount("/static", StaticFiles(directory="thumbnail_resources"), name="static")
-DEFAULT_THUMBNAIL = "/static/not_found.png"
+NOT_FOUND_IMAGES = [f"/static/not_found_{a}.png" for a in
+    ["cat","dog","penguin","frog","owl","fox","bunny","panda","octopus","duck","alien_cat"]]
 
 
 # ---------- Request/Response schemas ----------
@@ -100,7 +102,7 @@ def to_api_shape(row: dict) -> MediaItem:
     
     thumbnail = backend.get_thumbnail(str(title)) or str(row.get("thumbnail_url") or "")
     if not thumbnail.strip():
-        thumbnail = DEFAULT_THUMBNAIL
+        thumbnail = random.choice(NOT_FOUND_IMAGES)
 
     return MediaItem(
         title=str(title),
