@@ -9,10 +9,12 @@ import random
 
 from main import MovieBackend  # imports the class from backend/main.py
 
+BACKEND_URL = "http://localhost:3000"
+
 api = FastAPI()
 api.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=[BACKEND_URL],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -23,7 +25,7 @@ MediaType = Literal["movie", "tv", "anime"]
 
 # mounting no thumbnail found location
 api.mount("/static", StaticFiles(directory="thumbnail_resources"), name="static")
-NOT_FOUND_IMAGES = [f"/static/not_found_{a}.png" for a in
+NOT_FOUND_IMAGES = [f"{BACKEND_URL}/static/not_found_{a}.png" for a in
     ["cat","dog","penguin","frog","owl","fox","bunny","panda","octopus","duck","alien_cat"]]
 
 
