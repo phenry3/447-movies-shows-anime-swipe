@@ -6,6 +6,7 @@ export type MediaItem = {
     thumbnail_url: string;
     release_date : string; 
     vote_average : number;
+    streaming_service?: string;
 }
 
 
