@@ -57,19 +57,10 @@ export function MediaCard({ item, onClick, disableLink = false }: MediaCardProps
       </div>
 
       <div className="absolute bottom-0 w-full p-6">
-        <div className="flex items-end justify-between gap-4">
-          <h2 className="text-4xl font-bold leading-tight">{item.title}</h2>
-
-          {typeof item.vote_average === "number" ? (
-            <span className="rounded-full bg-white/10 px-3 py-1 text-sm ring-1 ring-white/15">
-              {item.vote_average.toFixed(1)}
-            </span>
-          ) : null}
-        </div>
+        <h2 className="text-4xl font-bold leading-tight">{item.title}</h2>
 
         <p className="mt-1 text-sm text-white/70">
           {item.media_type.toUpperCase()}
-          {item.release_date ? ` • ${item.release_date.slice(0, 4)}` : ""}
         </p>
 
         <div className="mt-3 flex flex-wrap gap-2">

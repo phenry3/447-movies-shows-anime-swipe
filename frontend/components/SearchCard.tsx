@@ -15,7 +15,6 @@ export function SearchCard({ item, onLike, liked }: SearchCardProps) {
 
         <p className="text-sm text-white/60">
           {item.media_type.toUpperCase()}
-          {item.release_date ? ` • ${item.release_date.slice(0, 4)}` : ""}
         </p>
       </div>
 

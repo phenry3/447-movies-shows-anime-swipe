@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { CalendarDays, Film, Star, Tags, X } from "lucide-react";
+import { Film, Tags, X } from "lucide-react";
 import type { MediaItem } from "@/lib/types/media";
 
 function DetailInfo({
@@ -50,8 +50,6 @@ export function DetailsCard({
   opaque = false,
 }: DetailsCardProps) {
   const overview = item.overview?.trim() || "Unknown";
-  const release = item.release_date?.trim() || "Unknown";
-  const rating = String(item.vote_average);
   const genres = item.genres.length > 0 ? item.genres.join(", ") : "Unknown";
 
   return (
@@ -93,18 +91,6 @@ export function DetailsCard({
             icon={<Film className="h-4 w-4" />}
             label="Format"
             value={item.media_type.toUpperCase()}
-            opaque={opaque}
-          />
-          <DetailInfo
-            icon={<CalendarDays className="h-4 w-4" />}
-            label="Release"
-            value={release}
-            opaque={opaque}
-          />
-          <DetailInfo
-            icon={<Star className="h-4 w-4" />}
-            label="Rating"
-            value={rating}
             opaque={opaque}
           />
           <DetailInfo
