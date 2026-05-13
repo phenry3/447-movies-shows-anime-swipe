@@ -57,15 +57,23 @@ class UserIn(BaseModel):
 
 #--------Helpers---------
 
+def clean_optional_string(value: Any) -> str:
+    text = str(value or "").strip()
+    if text.lower() in ("nan", "none", "null"):
+        return ""
+    return text
+
+
 def parse_genres(genres_val:Any) -> List[str]:
-    if not genres_val :
+    genres_text = clean_optional_string(genres_val)
+    if not genres_text:
         return []
     
-    parts = str(genres_val).split(",")
+    parts = genres_text.split(",")
     cleaned = []
 
     for g in parts:
-        g.strip()
+        g = clean_optional_string(g)
         if g:
             cleaned.append(g)
 
@@ -73,8 +81,8 @@ def parse_genres(genres_val:Any) -> List[str]:
 
 
 def cached_thumbnail_url(thumbnail_val: Any) -> str:
-    thumbnail_url = str(thumbnail_val or "").strip()
-    if thumbnail_url.startswith(("http://", "https://")):
+    thumbnail_url = clean_optional_string(thumbnail_val)
+    if thumbnail_url.startswith(("http://", "https://", "/")):
         return thumbnail_url
     return ""
 
@@ -111,22 +119,20 @@ def to_api_shape(row: dict, prefer_cached_thumbnail: bool = False) -> MediaItem:
     if media_type not in ("movie", "tv", "anime"):
         media_type = "movie"
     
-    thumbnail = backend.get_thumbnail(str(title)) or str(row.get("thumbnail_url") or "")
-    if not thumbnail.strip():
-        thumbnail = random.choice(NOT_FOUND_IMAGES)
-
-    fallback_thumbnail = str(row.get("thumbnail_url") or "").strip()
+    fallback_thumbnail = clean_optional_string(row.get("thumbnail_url"))
     thumbnail_url = ""
     if prefer_cached_thumbnail:
         thumbnail_url = cached_thumbnail_url(fallback_thumbnail)
     if not thumbnail_url:
-        thumbnail_url = backend.get_thumbnail(str(title)) or fallback_thumbnail
+        thumbnail_url = backend.get_thumbnail(str(title)) or cached_thumbnail_url(fallback_thumbnail)
+    if not thumbnail_url:
+        thumbnail_url = random.choice(NOT_FOUND_IMAGES)
 
     return MediaItem(
         title=str(title),
         overview=str(row.get("description") or ""),
         genres=parse_genres(row.get("genres")),
-        thumbnail_url=thumbnail,
+        thumbnail_url=thumbnail_url,
         media_type=media_type,  # type: ignore
         release_date="",
         vote_average=0.0,

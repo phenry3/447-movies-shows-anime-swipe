@@ -1,5 +1,8 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { useState } from "react";
 import type { MediaItem } from "@/lib/types/media";
 
 type MediaCardProps = {
@@ -8,11 +11,29 @@ type MediaCardProps = {
   disableLink?: boolean;
 };
 
+const FALLBACK_IMAGE = "/thumbnail_resources/not_found_cat.png";
+
+function resolveThumbnailUrl(thumbnailUrl: string) {
+  const src = thumbnailUrl?.trim();
+
+  if (!src || ["nan", "none", "null"].includes(src.toLowerCase())) {
+    return FALLBACK_IMAGE;
+  }
+
+  if (src.startsWith("http") || src.startsWith("/")) {
+    return src;
+  }
+
+  return `https://image.tmdb.org/t/p/w500${src}`;
+}
+
 export function MediaCard({ item, onClick, disableLink = false }: MediaCardProps) {
   const href = `/media/${encodeURIComponent(item.title)}`;
-  const imgSrc = item.thumbnail_url.startsWith("http") || item.thumbnail_url.startsWith("/")
-    ? item.thumbnail_url
-    : `https://image.tmdb.org/t/p/w500${item.thumbnail_url}`;
+  const resolvedImgSrc = resolveThumbnailUrl(item.thumbnail_url);
+  const [failedImgSrc, setFailedImgSrc] = useState<string | null>(null);
+  const imgSrc =
+    failedImgSrc === resolvedImgSrc ? FALLBACK_IMAGE : resolvedImgSrc;
+
   const streamingService = item.streaming_service?.trim();
   const className =
     "relative block w-full max-w-md overflow-hidden rounded-3xl bg-white/5 ring-1 ring-white/10";
@@ -26,6 +47,11 @@ export function MediaCard({ item, onClick, disableLink = false }: MediaCardProps
           fill
           className="object-cover"
           priority
+          onError={() => {
+            if (resolvedImgSrc !== FALLBACK_IMAGE) {
+              setFailedImgSrc(resolvedImgSrc);
+            }
+          }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-black/10" />
       </div>
