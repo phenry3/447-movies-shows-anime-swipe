@@ -130,7 +130,7 @@ def to_api_shape(row: dict, prefer_cached_thumbnail: bool = False) -> MediaItem:
         media_type=media_type,  # type: ignore
         release_date="",
         vote_average=0.0,
-        streaming_service=str(streaming_service or ""),
+        streaming_service=str(row.get("streaming_service") or ""),
     )
 
 
