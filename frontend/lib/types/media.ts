@@ -16,3 +16,7 @@ export type FeedbackPaylaod ={
     action : "like" | "dislike";
 };
 
+export type RemoveMatchPayload = {
+    google_id : string;
+    title : string;
+};

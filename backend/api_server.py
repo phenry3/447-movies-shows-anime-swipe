@@ -43,6 +43,10 @@ class FeedbackIn(BaseModel):
     title: str
     action: Literal["like", "dislike"]
 
+class RemoveMatchIn(BaseModel):
+    google_id: str
+    title: str
+
 class UserIn(BaseModel):
     google_id: str
     email: str
@@ -68,6 +72,13 @@ def parse_genres(genres_val:Any) -> List[str]:
     return cleaned
 
 
+def cached_thumbnail_url(thumbnail_val: Any) -> str:
+    thumbnail_url = str(thumbnail_val or "").strip()
+    if thumbnail_url.startswith(("http://", "https://")):
+        return thumbnail_url
+    return ""
+
+
 def fetch_movie_by_title(title: str) -> dict:
     
     #Look up the full row in movies table (because recommender returns only a title).
@@ -86,7 +97,7 @@ def fetch_movie_by_title(title: str) -> dict:
         conn.close()
 
 
-def to_api_shape(row: dict) -> MediaItem:
+def to_api_shape(row: dict, prefer_cached_thumbnail: bool = False) -> MediaItem:
     """
     Maps DB columns -> frontend JSON keys.
     DB: description, genres, thumbnail, content_type
@@ -103,6 +114,13 @@ def to_api_shape(row: dict) -> MediaItem:
     thumbnail = backend.get_thumbnail(str(title)) or str(row.get("thumbnail_url") or "")
     if not thumbnail.strip():
         thumbnail = random.choice(NOT_FOUND_IMAGES)
+
+    fallback_thumbnail = str(row.get("thumbnail_url") or "").strip()
+    thumbnail_url = ""
+    if prefer_cached_thumbnail:
+        thumbnail_url = cached_thumbnail_url(fallback_thumbnail)
+    if not thumbnail_url:
+        thumbnail_url = backend.get_thumbnail(str(title)) or fallback_thumbnail
 
     return MediaItem(
         title=str(title),
@@ -137,6 +155,7 @@ def create_user(user: UserIn):
         user.picture,
     )
 
+
     return {"status": result}
 
 @api.get("/api/rec/{google_id}", response_model=MediaItem)
@@ -162,8 +181,33 @@ def feedback(payload: FeedbackIn):
     
     if isinstance(result, str) and result.startswith("Error"):
         raise HTTPException(status_code=400, detail=result)
+    
+    backend.save_latest_feedback(google_id, title, payload.action)
+
     return one_recommendation(google_id)
 
+
+@api.get("/api/undo/{google_id}", response_model=MediaItem)
+def undo_feedback(google_id: str):
+    google_id = google_id.strip()
+
+    if not google_id:
+        raise HTTPException(status_code=400, detail="google_id is required")
+
+    latest = backend.get_latest_feedback(google_id)
+
+    if not latest:
+        raise HTTPException(status_code=400, detail="Error: no feedback to undo")
+
+    title = latest["title"]
+
+    result = backend.undo_latest_feedback(google_id)
+
+    if isinstance(result, str) and result.startswith("Error"):
+        raise HTTPException(status_code=400, detail=result)
+
+    row = fetch_movie_by_title(title)
+    return to_api_shape(row)
 
 # To be used by the matches page
 @api.get("/api/matches/{google_id}", response_model=List[MediaItem])
@@ -173,7 +217,30 @@ def matches(google_id: str):
     if isinstance(rows, str) and rows.startswith("Error"):
         raise HTTPException(status_code=400, detail=rows)
     
-    return [to_api_shape(r) for r in rows]
+    return [to_api_shape(r, prefer_cached_thumbnail=True) for r in rows]
+
+@api.delete("/api/matches")
+def remove_match(payload: RemoveMatchIn):
+    title = payload.title.strip()
+    google_id = payload.google_id.strip()
+
+    if not title:
+        raise HTTPException(status_code=400, detail="title is required")
+
+    if not google_id:
+        raise HTTPException(status_code=400, detail="google_id is required")
+
+    result = backend.remove_match(title, google_id)
+
+    if isinstance(result, str) and result.startswith("Error"):
+        raise HTTPException(status_code=400, detail=result)
+
+    return {"status": "removed"}
+
+@api.get("/api/stats/{google_id}")
+def get_counts(google_id: str):
+    """Returns { "liked": 12, "disliked": 4 }"""
+    return backend.get_stats(google_id)
 
 @api.get("/api/stats/genres/{google_id}")
 def get_genre_pie_data(google_id: str):
@@ -192,3 +259,21 @@ def get_counts(google_id: str):
 def search(query: str, limit: int = 10):
     titles = backend.search_titles(query, limit)
     return [to_api_shape(fetch_movie_by_title(t)) for t in titles]
+
+@api.get("/api/likes/{google_id}", response_model=List[str])
+def get_liked_titles(google_id: str):
+    rows = backend.get_matches(google_id)
+
+    if isinstance(rows, str) and rows.startswith("Error"):
+        raise HTTPException(status_code=400, detail=rows)
+
+    return [str(r["title"]) for r in rows]
+
+@api.get("/api/likes/count/{google_id}")
+def get_liked_count(google_id: str):
+    rows = backend.get_matches(google_id)
+
+    if isinstance(rows, str) and rows.startswith("Error"):
+        raise HTTPException(status_code=400, detail=rows)
+
+    return {"count": len(rows)}

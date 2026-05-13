@@ -70,19 +70,20 @@ venv\Scripts\activate
 pip install -r requirements.txt
 
 - Run server
-uvicorn api_server:app --reload
+uvicorn api_server:app --reload --port 8000
 
 ## 3. Frontend Setup
+On a separate shell
 cd frontend
 
 - Install dependencies
 npm install
 
-- Start development server
-npm run dev
-
 - Create a .env.local file in the frontend root with the following variable:
 NEXT_PUBLIC_BACKEND_URL=http://127.0.0.1:8000
+
+- Start development server
+npm run dev
 
 # Demo
 

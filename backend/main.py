@@ -38,6 +38,16 @@ class MovieBackend:
         """Creates matches and dislikes tables with the same structure as movies with google_id as link to user."""
         conn.execute("CREATE TABLE IF NOT EXISTS matches AS SELECT * FROM movies WHERE 1=0")
         conn.execute("CREATE TABLE IF NOT EXISTS dislikes AS SELECT * FROM movies WHERE 1=0")
+       
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS latest_feedback (
+                google_id TEXT PRIMARY KEY,
+                title TEXT NOT NULL,
+                action TEXT NOT NULL,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (google_id) REFERENCES users(google_id)
+            )
+        """)
 
         try:
             conn.execute("ALTER TABLE matches ADD COLUMN google_id TEXT REFERENCES users(google_id)")
@@ -97,6 +107,11 @@ class MovieBackend:
         if not user:
             conn.close()
             return "Error: google_id not found"
+
+        conn.close()
+        self.get_thumbnail(title)
+
+        conn = sqlite3.connect(self.db_path)
         
         # makes sure doesnt exist
         conn.execute("INSERT INTO matches SELECT *, ?, NULL FROM movies WHERE title = ? AND NOT EXISTS (SELECT 1 FROM matches WHERE title = ? AND google_id = ?)", 
@@ -139,7 +154,7 @@ class MovieBackend:
         user = conn.execute("SELECT 1 FROM users WHERE google_id = ?", (google_id,)).fetchone()
         if not user:
             conn.close()
-            return "Error: google_id not found"
+            return []
         df = pd.read_sql_query("SELECT * FROM matches WHERE google_id = ? ORDER BY rowid DESC", conn, params=(google_id,))  # added ORDER BY rowid DESC
         conn.close()
         return df.to_dict(orient='records')
@@ -169,6 +184,60 @@ class MovieBackend:
         conn.commit()
         conn.close()
 
+    # --- Undo Logic ---
+    def save_latest_feedback(self, google_id, title, action):
+        conn = sqlite3.connect(self.db_path)
+
+        conn.execute("""
+            INSERT INTO latest_feedback (google_id, title, action, updated_at)
+            VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(google_id) DO UPDATE SET
+                title = excluded.title,
+                action = excluded.action,
+                updated_at = CURRENT_TIMESTAMP
+        """, (google_id, title, action))
+
+        conn.commit()
+        conn.close()
+
+    def get_latest_feedback(self, google_id):
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+
+        row = conn.execute(
+            "SELECT title, action FROM latest_feedback WHERE google_id = ?",
+            (google_id,)
+        ).fetchone()
+
+        conn.close()
+        return dict(row) if row else None
+
+    def undo_latest_feedback(self, google_id):
+        latest = self.get_latest_feedback(google_id)
+
+        if not latest:
+            return "Error: no feedback to undo"
+
+        title = latest["title"]
+        action = latest["action"]
+
+        if action == "like":
+            result = self.remove_match(title, google_id)
+        elif action == "dislike":
+            result = self.remove_dislike(title, google_id)
+        else:
+            return "Error: invalid feedback action"
+
+        if isinstance(result, str) and result.startswith("Error"):
+            return result
+
+        conn = sqlite3.connect(self.db_path)
+        conn.execute("DELETE FROM latest_feedback WHERE google_id = ?", (google_id,))
+        conn.commit()
+        conn.close()
+
+        return "undone"
+    
     def get_dislikes(self, google_id):
         conn = sqlite3.connect(self.db_path)
         user = conn.execute("SELECT 1 FROM users WHERE google_id = ?", (google_id,)).fetchone()
@@ -187,6 +256,26 @@ class MovieBackend:
         return self.recommender.serving_rec(self.get_match_titles(google_id), self.get_dislike_titles(google_id))
     
     # --- Thumbnail Logic ---
+    def _cache_thumbnail(self, title, thumbnail_url):
+        if not thumbnail_url:
+            return
+
+        conn = sqlite3.connect(self.db_path)
+        try:
+            conn.execute(
+                "UPDATE movies SET thumbnail_url = ? WHERE title = ?",
+                (thumbnail_url, title)
+            )
+            conn.execute(
+                "UPDATE matches SET thumbnail_url = ? WHERE title = ?",
+                (thumbnail_url, title)
+            )
+            conn.commit()
+        except sqlite3.OperationalError:
+            pass
+        finally:
+            conn.close()
+
     def get_thumbnail(self, title):
         conn = sqlite3.connect(self.db_path)
 
@@ -215,7 +304,9 @@ class MovieBackend:
                 if data.get("results"):
                     poster = data["results"][0].get("poster_path")
                     if poster:
-                        return f"{TMDB_IMG}{poster}"
+                        thumbnail_url = f"{TMDB_IMG}{poster}"
+                        self._cache_thumbnail(title, thumbnail_url)
+                        return thumbnail_url
 
             elif media == "tv":
                 r = requests.get(
@@ -228,7 +319,9 @@ class MovieBackend:
                 if data.get("results"):
                     poster = data["results"][0].get("poster_path")
                     if poster:
-                        return f"{TMDB_IMG}{poster}"
+                        thumbnail_url = f"{TMDB_IMG}{poster}"
+                        self._cache_thumbnail(title, thumbnail_url)
+                        return thumbnail_url
 
             elif media == "anime":
                 r = requests.get(
@@ -243,6 +336,7 @@ class MovieBackend:
                     jpg = images.get("jpg", {})
                     image_url = jpg.get("image_url")
                     if image_url:
+                        self._cache_thumbnail(title, image_url)
                         return image_url
 
         except:
@@ -306,10 +400,13 @@ class MovieBackend:
         conn.close()
 
     def get_stats(self, google_id):
+        """Returns the total counts for matches and dislikes."""
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
+        
         cursor.execute("SELECT COUNT(*) FROM matches WHERE google_id = ?", (google_id,))
         liked_count = cursor.fetchone()[0]
+        
         cursor.execute("SELECT COUNT(*) FROM dislikes WHERE google_id = ?", (google_id,))
         disliked_count = cursor.fetchone()[0]
         conn.close()
